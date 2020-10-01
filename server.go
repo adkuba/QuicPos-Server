@@ -23,7 +23,6 @@ func main() {
 
 	mongodb.InitDB()
 	defer mongodb.DisconnectDB()
-	mongodb.List()
 
 	srv := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{Resolvers: &graph.Resolver{}}))
 	http.Handle("/", playground.Handler("GraphQL playground", "/query"))

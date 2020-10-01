@@ -6,24 +6,34 @@ package graph
 import (
 	"QuicPos/graph/generated"
 	"QuicPos/graph/model"
+	"QuicPos/internal/post"
 	"context"
 	"fmt"
+
+	"github.com/google/uuid"
 )
 
 func (r *mutationResolver) CreatePost(ctx context.Context, input model.NewPost) (*model.Post, error) {
+	var post post.Post
+	post.Text = input.Text
+	post.UserID = input.UserID
+	post.Shares = 0
+	post.Views = nil
+	postID := post.Save()
+	return &model.Post{ID: postID, Text: post.Text, UserID: post.UserID, Shares: post.Shares, Views: post.Views}, nil
+}
+
+func (r *queryResolver) Post(ctx context.Context, userID string) (*model.Post, error) {
+	post := post.GetOne()
+	return &model.Post{ID: post.ID.String(), Text: post.Text, UserID: post.UserID, Shares: post.Shares, Views: post.Views}, nil
+}
+
+func (r *queryResolver) OpinionPost(ctx context.Context) (*model.Post, error) {
 	panic(fmt.Errorf("not implemented"))
 }
 
-func (r *queryResolver) Post(ctx context.Context) (*model.Post, error) {
-	dummyPost := model.Post{
-		ID:   "testPOST",
-		Text: "test text",
-		User: &model.User{
-			ID:    "testUser",
-			Views: nil,
-		},
-	}
-	return &dummyPost, nil
+func (r *queryResolver) CreateUser(ctx context.Context) (string, error) {
+	return uuid.New().String(), nil
 }
 
 // Mutation returns generated.MutationResolver implementation.

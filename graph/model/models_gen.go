@@ -8,17 +8,14 @@ type NewPost struct {
 }
 
 type Post struct {
-	ID   string `json:"id"`
-	Text string `json:"text"`
-	User *User  `json:"user"`
-}
-
-type User struct {
-	ID    string  `json:"id"`
-	Views []*View `json:"views"`
+	ID     string  `json:"ID"`
+	Text   string  `json:"text"`
+	UserID string  `json:"userId"`
+	Views  []*View `json:"views"`
+	Shares int     `json:"shares"`
 }
 
 type View struct {
-	PostID string   `json:"postId"`
-	Time   *float64 `json:"time"`
+	UserID string  `json:"userId"`
+	Time   float64 `json:"time"`
 }

@@ -3,23 +3,22 @@
 # https://gqlgen.com/getting-started/
 
 type Query {
-  post: Post!
+  post(userId: String!): Post!
+  opinionPost: Post!
+  createUser: String!
 }
 
 type Post {
-  id: ID!
+  ID: String!
   text: String!
-  user: User!
-}
-
-type User {
-  id: ID!
+  userId: String!
   views: [View!]!
+  shares: Int!
 }
 
 type View {
-  postId: String!
-  time: Float
+  userId: String!
+  time: Float!
 }
 
 input NewPost {
