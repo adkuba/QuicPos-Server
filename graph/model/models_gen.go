@@ -5,14 +5,19 @@ package model
 type NewPost struct {
 	Text   string `json:"text"`
 	UserID string `json:"userId"`
+	Image  string `json:"image"`
 }
 
 type Post struct {
-	ID     string  `json:"ID"`
-	Text   string  `json:"text"`
-	UserID string  `json:"userId"`
-	Views  []*View `json:"views"`
-	Shares int     `json:"shares"`
+	ID            string   `json:"ID"`
+	Text          string   `json:"text"`
+	UserID        string   `json:"userId"`
+	Views         []*View  `json:"views"`
+	Shares        int      `json:"shares"`
+	Reports       []string `json:"reports"`
+	CreationTime  string   `json:"creationTime"`
+	InitialReview bool     `json:"initialReview"`
+	Image         string   `json:"image"`
 }
 
 type View struct {

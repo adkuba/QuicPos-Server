@@ -7,8 +7,10 @@ import (
 	"QuicPos/graph/generated"
 	"QuicPos/graph/model"
 	"QuicPos/internal/post"
+	"QuicPos/internal/storage"
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -17,15 +19,19 @@ func (r *mutationResolver) CreatePost(ctx context.Context, input model.NewPost) 
 	var post post.Post
 	post.Text = input.Text
 	post.UserID = input.UserID
+	post.CreationTime = time.Now()
+	post.Image = storage.UploadFile(input.Image)
+	post.InitialReview = false
+	post.Reports = nil
 	post.Shares = 0
 	post.Views = nil
 	postID := post.Save()
-	return &model.Post{ID: postID, Text: post.Text, UserID: post.UserID, Shares: post.Shares, Views: post.Views}, nil
+	return &model.Post{ID: postID, Text: post.Text, UserID: post.UserID, Reports: post.Reports, Shares: post.Shares, Views: post.Views, CreationTime: post.CreationTime.String(), InitialReview: post.InitialReview, Image: post.Image}, nil
 }
 
 func (r *queryResolver) Post(ctx context.Context, userID string) (*model.Post, error) {
 	post := post.GetOne()
-	return &model.Post{ID: post.ID.String(), Text: post.Text, UserID: post.UserID, Shares: post.Shares, Views: post.Views}, nil
+	return &model.Post{ID: post.ID.String(), Text: post.Text, UserID: post.UserID, Reports: post.Reports, Shares: post.Shares, Views: post.Views, InitialReview: post.InitialReview, Image: post.Image, CreationTime: post.CreationTime.String()}, nil
 }
 
 func (r *queryResolver) OpinionPost(ctx context.Context) (*model.Post, error) {

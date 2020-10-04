@@ -5,26 +5,36 @@ import (
 	"QuicPos/internal/mongodb"
 	"context"
 	"log"
+	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 //Post struct
 type Post struct {
-	Text   string
-	UserID string
-	Views  []*model.View
-	Shares int
+	Text          string
+	UserID        string
+	Reports       []string
+	CreationTime  time.Time
+	Image         string
+	InitialReview bool
+	Views         []*model.View
+	Shares        int
 }
 
 //Output post struct
 type Output struct {
-	ID     primitive.ObjectID `bson:"_id" json:"id,omitempty"`
-	Text   string
-	UserID string
-	Views  []*model.View
-	Shares int
+	ID            primitive.ObjectID `bson:"_id" json:"id,omitempty"`
+	Text          string
+	UserID        string
+	Reports       []string
+	Views         []*model.View
+	Shares        int
+	CreationTime  time.Time
+	Image         string
+	InitialReview bool
 }
 
 //Save saves post to database
@@ -39,10 +49,14 @@ func (post Post) Save() string {
 
 //GetOne gets one random post
 func GetOne() Output {
-	var result Output
-	err := mongodb.PostsCol.FindOne(context.TODO(), bson.D{}).Decode(&result)
+	o1 := bson.D{{"$sample", bson.D{{"size", 1}}}}
+	showLoadedCursor, err := mongodb.PostsCol.Aggregate(context.TODO(), mongo.Pipeline{o1})
 	if err != nil {
 		log.Fatal(err)
 	}
-	return result
+	var showsLoaded []*Output
+	if err = showLoadedCursor.All(context.TODO(), &showsLoaded); err != nil {
+		panic(err)
+	}
+	return *showsLoaded[0]
 }
