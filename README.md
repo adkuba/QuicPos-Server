@@ -65,7 +65,7 @@ mutation create {
 Get post
 ```graphql
 query {
-  post(userId: "ee") {
+  post(userId: "ee", normalMode: true) {
     ID
     text
     userId

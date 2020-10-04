@@ -3,8 +3,7 @@
 # https://gqlgen.com/getting-started/
 
 type Query {
-  post(userId: String!): Post!
-  opinionPost: Post!
+  post(userId: String!, normalMode: Boolean!): Post!
   createUser: String!
 }
 
@@ -17,7 +16,7 @@ type Post {
   reports: [String!]!
   creationTime: String!
   initialReview: Boolean!
-  image: String!
+  image: String! #storage id
 }
 
 type View {

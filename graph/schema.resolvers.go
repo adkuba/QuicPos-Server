@@ -9,7 +9,6 @@ import (
 	"QuicPos/internal/post"
 	"QuicPos/internal/storage"
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -29,13 +28,10 @@ func (r *mutationResolver) CreatePost(ctx context.Context, input model.NewPost) 
 	return &model.Post{ID: postID, Text: post.Text, UserID: post.UserID, Reports: post.Reports, Shares: post.Shares, Views: post.Views, CreationTime: post.CreationTime.String(), InitialReview: post.InitialReview, Image: post.Image}, nil
 }
 
-func (r *queryResolver) Post(ctx context.Context, userID string) (*model.Post, error) {
+func (r *queryResolver) Post(ctx context.Context, userID string, normalMode bool) (*model.Post, error) {
+	//userID and normalMode to be used
 	post := post.GetOne()
 	return &model.Post{ID: post.ID.String(), Text: post.Text, UserID: post.UserID, Reports: post.Reports, Shares: post.Shares, Views: post.Views, InitialReview: post.InitialReview, Image: post.Image, CreationTime: post.CreationTime.String()}, nil
-}
-
-func (r *queryResolver) OpinionPost(ctx context.Context) (*model.Post, error) {
-	panic(fmt.Errorf("not implemented"))
 }
 
 func (r *queryResolver) CreateUser(ctx context.Context) (string, error) {
@@ -50,3 +46,10 @@ func (r *Resolver) Query() generated.QueryResolver { return &queryResolver{r} }
 
 type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
+
+// !!! WARNING !!!
+// The code below was going to be deleted when updating resolvers. It has been copied here so you have
+// one last chance to move it out of harms way if you want. There are two reasons this happens:
+//  - When renaming or deleting a resolver the old code will be put in here. You can safely delete
+//    it when you're done.
+//  - You have helper methods in this file. Move them out to keep these resolver files clean.
