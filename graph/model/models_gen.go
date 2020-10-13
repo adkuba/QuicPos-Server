@@ -20,6 +20,18 @@ type Post struct {
 	Image         string   `json:"image"`
 }
 
+type PostReview struct {
+	Post *Post `json:"post"`
+	Left int   `json:"left"`
+}
+
+type Review struct {
+	PostID   string `json:"postID"`
+	New      bool   `json:"new"`
+	Delete   bool   `json:"delete"`
+	Password string `json:"password"`
+}
+
 type View struct {
 	UserID string  `json:"userId"`
 	Time   float64 `json:"time"`

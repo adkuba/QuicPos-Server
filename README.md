@@ -32,7 +32,7 @@ If mongo can't find DNS edit <code>/etc/resolv.conf</code> and change nameserver
 Important handling of ObjectID - see post.go. I don't know if it is good but works well.
 
 ## TODO
-Mam juz create post ze zdjeciem - base64 string, pobieranie randomowego posta oraz pobieranie userID
+Zamina panic na wywalanie errors.New("message")
 
 ## Examples
 Save post
@@ -87,5 +87,104 @@ Get new UserID
 ```graphql
 query {
   createUser
+}
+```
+
+---
+Get post by id
+```graphql
+query {
+  viewerPost(id: "5f79cc689ec125d75f2e36e5") {
+    ID
+    text
+    userId
+    shares
+    views {
+      userId
+      time
+    }
+    creationTime
+    initialReview
+    image
+    reports
+  }
+}
+```
+---
+Get the oldest without initial review
+```graphql
+query {
+  unReviewed(password: "funia", new: true) {
+    post {
+      ID
+      text
+      userId
+      shares
+      views {
+        userId
+        time
+      }
+      creationTime
+      initialReview
+      image
+      reports
+    }
+    left
+  }
+}
+```
+
+---
+Get the most reported post
+```graphql
+query {
+  unReviewed(password: "funia", new: false) {
+    post {
+      ID
+      text
+      userId
+      shares
+      views {
+        userId
+        time
+      }
+      creationTime
+      initialReview
+      image
+      reports
+    }
+    left
+  }
+}
+```
+
+---
+Initial review without delete
+```graphql
+mutation review {
+  review(
+    input: {
+      postID: "5f79cc2f9ec125d75f2e36e4"
+      new: true
+      delete: false
+      password: "funia"
+    }
+  )
+}
+```
+
+
+---
+Reported review with delete
+```graphql
+mutation review {
+  review(
+    input: {
+      postID: "5f79cc2f9ec125d75f2e36e4"
+      new: false
+      delete: true
+      password: "funia"
+    }
+  )
 }
 ```

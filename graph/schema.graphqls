@@ -5,6 +5,8 @@
 type Query {
   post(userId: String!, normalMode: Boolean!): Post!
   createUser: String!
+  viewerPost(id: String!): Post!
+  unReviewed(password: String!, new: Boolean!): PostReview!
 }
 
 type Post {
@@ -19,6 +21,11 @@ type Post {
   image: String! #storage id
 }
 
+type PostReview {
+  post: Post!
+  left: Int!
+}
+
 type View {
   userId: String!
   time: Float!
@@ -30,6 +37,14 @@ input NewPost {
   image: String! #base64 string
 }
 
+input Review {
+  postID: String!
+  new: Boolean!
+  delete: Boolean!
+  password: String!
+}
+
 type Mutation {
   createPost(input: NewPost!): Post!
+  review(input: Review!): Boolean!
 }
