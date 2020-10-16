@@ -8,21 +8,27 @@ type NewPost struct {
 	Image  string `json:"image"`
 }
 
-type Post struct {
-	ID            string   `json:"ID"`
-	Text          string   `json:"text"`
-	UserID        string   `json:"userId"`
-	Views         []*View  `json:"views"`
-	Shares        int      `json:"shares"`
-	Reports       []string `json:"reports"`
-	CreationTime  string   `json:"creationTime"`
-	InitialReview bool     `json:"initialReview"`
-	Image         string   `json:"image"`
+type NewView struct {
+	PostID string  `json:"postID"`
+	UserID string  `json:"userId"`
+	Time   float64 `json:"time"`
+}
+
+type PostOut struct {
+	ID            string `json:"ID"`
+	Text          string `json:"text"`
+	UserID        string `json:"userId"`
+	Views         int    `json:"views"`
+	Shares        int    `json:"shares"`
+	CreationTime  string `json:"creationTime"`
+	InitialReview bool   `json:"initialReview"`
+	Image         string `json:"image"`
+	Blocked       bool   `json:"blocked"`
 }
 
 type PostReview struct {
-	Post *Post `json:"post"`
-	Left int   `json:"left"`
+	Post *PostOut `json:"post"`
+	Left int      `json:"left"`
 }
 
 type Review struct {
@@ -30,9 +36,4 @@ type Review struct {
 	New      bool   `json:"new"`
 	Delete   bool   `json:"delete"`
 	Password string `json:"password"`
-}
-
-type View struct {
-	UserID string  `json:"userId"`
-	Time   float64 `json:"time"`
 }

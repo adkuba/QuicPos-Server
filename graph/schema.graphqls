@@ -3,38 +3,39 @@
 # https://gqlgen.com/getting-started/
 
 type Query {
-  post(userId: String!, normalMode: Boolean!): Post!
+  post(userId: String!, normalMode: Boolean!): PostOut!
   createUser: String!
-  viewerPost(id: String!): Post!
+  viewerPost(id: String!): PostOut!
   unReviewed(password: String!, new: Boolean!): PostReview!
 }
 
-type Post {
+type PostOut {
   ID: String!
   text: String!
   userId: String!
-  views: [View!]!
+  views: Int!
   shares: Int!
-  reports: [String!]!
   creationTime: String!
   initialReview: Boolean!
   image: String! #storage id
+  blocked: Boolean!
 }
 
 type PostReview {
-  post: Post!
+  post: PostOut!
   left: Int!
-}
-
-type View {
-  userId: String!
-  time: Float!
 }
 
 input NewPost {
   text: String!
   userId: String!
   image: String! #base64 string
+}
+
+input NewView {
+  postID: String!
+  userId: String!
+  time: Float!
 }
 
 input Review {
@@ -45,6 +46,9 @@ input Review {
 }
 
 type Mutation {
-  createPost(input: NewPost!): Post!
+  createPost(input: NewPost!): PostOut!
   review(input: Review!): Boolean!
+  share(input: String!): Boolean!
+  report(input: String!): Boolean!
+  view(input: NewView!): Boolean!
 }

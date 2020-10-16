@@ -45,15 +45,18 @@ type DirectiveRoot struct {
 type ComplexityRoot struct {
 	Mutation struct {
 		CreatePost func(childComplexity int, input model.NewPost) int
+		Report     func(childComplexity int, input string) int
 		Review     func(childComplexity int, input model.Review) int
+		Share      func(childComplexity int, input string) int
+		View       func(childComplexity int, input model.NewView) int
 	}
 
-	Post struct {
+	PostOut struct {
+		Blocked       func(childComplexity int) int
 		CreationTime  func(childComplexity int) int
 		ID            func(childComplexity int) int
 		Image         func(childComplexity int) int
 		InitialReview func(childComplexity int) int
-		Reports       func(childComplexity int) int
 		Shares        func(childComplexity int) int
 		Text          func(childComplexity int) int
 		UserID        func(childComplexity int) int
@@ -71,21 +74,19 @@ type ComplexityRoot struct {
 		UnReviewed func(childComplexity int, password string, new bool) int
 		ViewerPost func(childComplexity int, id string) int
 	}
-
-	View struct {
-		Time   func(childComplexity int) int
-		UserID func(childComplexity int) int
-	}
 }
 
 type MutationResolver interface {
-	CreatePost(ctx context.Context, input model.NewPost) (*model.Post, error)
+	CreatePost(ctx context.Context, input model.NewPost) (*model.PostOut, error)
 	Review(ctx context.Context, input model.Review) (bool, error)
+	Share(ctx context.Context, input string) (bool, error)
+	Report(ctx context.Context, input string) (bool, error)
+	View(ctx context.Context, input model.NewView) (bool, error)
 }
 type QueryResolver interface {
-	Post(ctx context.Context, userID string, normalMode bool) (*model.Post, error)
+	Post(ctx context.Context, userID string, normalMode bool) (*model.PostOut, error)
 	CreateUser(ctx context.Context) (string, error)
-	ViewerPost(ctx context.Context, id string) (*model.Post, error)
+	ViewerPost(ctx context.Context, id string) (*model.PostOut, error)
 	UnReviewed(ctx context.Context, password string, new bool) (*model.PostReview, error)
 }
 
@@ -116,6 +117,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.CreatePost(childComplexity, args["input"].(model.NewPost)), true
 
+	case "Mutation.report":
+		if e.complexity.Mutation.Report == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_report_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.Report(childComplexity, args["input"].(string)), true
+
 	case "Mutation.review":
 		if e.complexity.Mutation.Review == nil {
 			break
@@ -128,68 +141,92 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.Review(childComplexity, args["input"].(model.Review)), true
 
-	case "Post.creationTime":
-		if e.complexity.Post.CreationTime == nil {
+	case "Mutation.share":
+		if e.complexity.Mutation.Share == nil {
 			break
 		}
 
-		return e.complexity.Post.CreationTime(childComplexity), true
+		args, err := ec.field_Mutation_share_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
 
-	case "Post.ID":
-		if e.complexity.Post.ID == nil {
+		return e.complexity.Mutation.Share(childComplexity, args["input"].(string)), true
+
+	case "Mutation.view":
+		if e.complexity.Mutation.View == nil {
 			break
 		}
 
-		return e.complexity.Post.ID(childComplexity), true
+		args, err := ec.field_Mutation_view_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
 
-	case "Post.image":
-		if e.complexity.Post.Image == nil {
+		return e.complexity.Mutation.View(childComplexity, args["input"].(model.NewView)), true
+
+	case "PostOut.blocked":
+		if e.complexity.PostOut.Blocked == nil {
 			break
 		}
 
-		return e.complexity.Post.Image(childComplexity), true
+		return e.complexity.PostOut.Blocked(childComplexity), true
 
-	case "Post.initialReview":
-		if e.complexity.Post.InitialReview == nil {
+	case "PostOut.creationTime":
+		if e.complexity.PostOut.CreationTime == nil {
 			break
 		}
 
-		return e.complexity.Post.InitialReview(childComplexity), true
+		return e.complexity.PostOut.CreationTime(childComplexity), true
 
-	case "Post.reports":
-		if e.complexity.Post.Reports == nil {
+	case "PostOut.ID":
+		if e.complexity.PostOut.ID == nil {
 			break
 		}
 
-		return e.complexity.Post.Reports(childComplexity), true
+		return e.complexity.PostOut.ID(childComplexity), true
 
-	case "Post.shares":
-		if e.complexity.Post.Shares == nil {
+	case "PostOut.image":
+		if e.complexity.PostOut.Image == nil {
 			break
 		}
 
-		return e.complexity.Post.Shares(childComplexity), true
+		return e.complexity.PostOut.Image(childComplexity), true
 
-	case "Post.text":
-		if e.complexity.Post.Text == nil {
+	case "PostOut.initialReview":
+		if e.complexity.PostOut.InitialReview == nil {
 			break
 		}
 
-		return e.complexity.Post.Text(childComplexity), true
+		return e.complexity.PostOut.InitialReview(childComplexity), true
 
-	case "Post.userId":
-		if e.complexity.Post.UserID == nil {
+	case "PostOut.shares":
+		if e.complexity.PostOut.Shares == nil {
 			break
 		}
 
-		return e.complexity.Post.UserID(childComplexity), true
+		return e.complexity.PostOut.Shares(childComplexity), true
 
-	case "Post.views":
-		if e.complexity.Post.Views == nil {
+	case "PostOut.text":
+		if e.complexity.PostOut.Text == nil {
 			break
 		}
 
-		return e.complexity.Post.Views(childComplexity), true
+		return e.complexity.PostOut.Text(childComplexity), true
+
+	case "PostOut.userId":
+		if e.complexity.PostOut.UserID == nil {
+			break
+		}
+
+		return e.complexity.PostOut.UserID(childComplexity), true
+
+	case "PostOut.views":
+		if e.complexity.PostOut.Views == nil {
+			break
+		}
+
+		return e.complexity.PostOut.Views(childComplexity), true
 
 	case "PostReview.left":
 		if e.complexity.PostReview.Left == nil {
@@ -247,20 +284,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Query.ViewerPost(childComplexity, args["id"].(string)), true
-
-	case "View.time":
-		if e.complexity.View.Time == nil {
-			break
-		}
-
-		return e.complexity.View.Time(childComplexity), true
-
-	case "View.userId":
-		if e.complexity.View.UserID == nil {
-			break
-		}
-
-		return e.complexity.View.UserID(childComplexity), true
 
 	}
 	return 0, false
@@ -331,38 +354,39 @@ var sources = []*ast.Source{
 # https://gqlgen.com/getting-started/
 
 type Query {
-  post(userId: String!, normalMode: Boolean!): Post!
+  post(userId: String!, normalMode: Boolean!): PostOut!
   createUser: String!
-  viewerPost(id: String!): Post!
+  viewerPost(id: String!): PostOut!
   unReviewed(password: String!, new: Boolean!): PostReview!
 }
 
-type Post {
+type PostOut {
   ID: String!
   text: String!
   userId: String!
-  views: [View!]!
+  views: Int!
   shares: Int!
-  reports: [String!]!
   creationTime: String!
   initialReview: Boolean!
   image: String! #storage id
+  blocked: Boolean!
 }
 
 type PostReview {
-  post: Post!
+  post: PostOut!
   left: Int!
-}
-
-type View {
-  userId: String!
-  time: Float!
 }
 
 input NewPost {
   text: String!
   userId: String!
   image: String! #base64 string
+}
+
+input NewView {
+  postID: String!
+  userId: String!
+  time: Float!
 }
 
 input Review {
@@ -373,8 +397,11 @@ input Review {
 }
 
 type Mutation {
-  createPost(input: NewPost!): Post!
+  createPost(input: NewPost!): PostOut!
   review(input: Review!): Boolean!
+  share(input: String!): Boolean!
+  report(input: String!): Boolean!
+  view(input: NewView!): Boolean!
 }`, BuiltIn: false},
 }
 var parsedSchema = gqlparser.MustLoadSchema(sources...)
@@ -398,6 +425,21 @@ func (ec *executionContext) field_Mutation_createPost_args(ctx context.Context, 
 	return args, nil
 }
 
+func (ec *executionContext) field_Mutation_report_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["input"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
+		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Mutation_review_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
@@ -405,6 +447,36 @@ func (ec *executionContext) field_Mutation_review_args(ctx context.Context, rawA
 	if tmp, ok := rawArgs["input"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
 		arg0, err = ec.unmarshalNReview2QuicPosᚋgraphᚋmodelᚐReview(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_share_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["input"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
+		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_view_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 model.NewView
+	if tmp, ok := rawArgs["input"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
+		arg0, err = ec.unmarshalNNewView2QuicPosᚋgraphᚋmodelᚐNewView(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -566,9 +638,9 @@ func (ec *executionContext) _Mutation_createPost(ctx context.Context, field grap
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*model.Post)
+	res := resTmp.(*model.PostOut)
 	fc.Result = res
-	return ec.marshalNPost2ᚖQuicPosᚋgraphᚋmodelᚐPost(ctx, field.Selections, res)
+	return ec.marshalNPostOut2ᚖQuicPosᚋgraphᚋmodelᚐPostOut(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Mutation_review(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -613,7 +685,7 @@ func (ec *executionContext) _Mutation_review(ctx context.Context, field graphql.
 	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Post_ID(ctx context.Context, field graphql.CollectedField, obj *model.Post) (ret graphql.Marshaler) {
+func (ec *executionContext) _Mutation_share(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -621,7 +693,133 @@ func (ec *executionContext) _Post_ID(ctx context.Context, field graphql.Collecte
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:     "Post",
+		Object:     "Mutation",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_share_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().Share(rctx, args["input"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_report(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_report_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().Report(rctx, args["input"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_view(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_view_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().View(rctx, args["input"].(model.NewView))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _PostOut_ID(ctx context.Context, field graphql.CollectedField, obj *model.PostOut) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "PostOut",
 		Field:      field,
 		Args:       nil,
 		IsMethod:   false,
@@ -648,7 +846,7 @@ func (ec *executionContext) _Post_ID(ctx context.Context, field graphql.Collecte
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Post_text(ctx context.Context, field graphql.CollectedField, obj *model.Post) (ret graphql.Marshaler) {
+func (ec *executionContext) _PostOut_text(ctx context.Context, field graphql.CollectedField, obj *model.PostOut) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -656,7 +854,7 @@ func (ec *executionContext) _Post_text(ctx context.Context, field graphql.Collec
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:     "Post",
+		Object:     "PostOut",
 		Field:      field,
 		Args:       nil,
 		IsMethod:   false,
@@ -683,7 +881,7 @@ func (ec *executionContext) _Post_text(ctx context.Context, field graphql.Collec
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Post_userId(ctx context.Context, field graphql.CollectedField, obj *model.Post) (ret graphql.Marshaler) {
+func (ec *executionContext) _PostOut_userId(ctx context.Context, field graphql.CollectedField, obj *model.PostOut) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -691,7 +889,7 @@ func (ec *executionContext) _Post_userId(ctx context.Context, field graphql.Coll
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:     "Post",
+		Object:     "PostOut",
 		Field:      field,
 		Args:       nil,
 		IsMethod:   false,
@@ -718,7 +916,7 @@ func (ec *executionContext) _Post_userId(ctx context.Context, field graphql.Coll
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Post_views(ctx context.Context, field graphql.CollectedField, obj *model.Post) (ret graphql.Marshaler) {
+func (ec *executionContext) _PostOut_views(ctx context.Context, field graphql.CollectedField, obj *model.PostOut) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -726,7 +924,7 @@ func (ec *executionContext) _Post_views(ctx context.Context, field graphql.Colle
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:     "Post",
+		Object:     "PostOut",
 		Field:      field,
 		Args:       nil,
 		IsMethod:   false,
@@ -748,12 +946,12 @@ func (ec *executionContext) _Post_views(ctx context.Context, field graphql.Colle
 		}
 		return graphql.Null
 	}
-	res := resTmp.([]*model.View)
+	res := resTmp.(int)
 	fc.Result = res
-	return ec.marshalNView2ᚕᚖQuicPosᚋgraphᚋmodelᚐViewᚄ(ctx, field.Selections, res)
+	return ec.marshalNInt2int(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Post_shares(ctx context.Context, field graphql.CollectedField, obj *model.Post) (ret graphql.Marshaler) {
+func (ec *executionContext) _PostOut_shares(ctx context.Context, field graphql.CollectedField, obj *model.PostOut) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -761,7 +959,7 @@ func (ec *executionContext) _Post_shares(ctx context.Context, field graphql.Coll
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:     "Post",
+		Object:     "PostOut",
 		Field:      field,
 		Args:       nil,
 		IsMethod:   false,
@@ -788,7 +986,7 @@ func (ec *executionContext) _Post_shares(ctx context.Context, field graphql.Coll
 	return ec.marshalNInt2int(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Post_reports(ctx context.Context, field graphql.CollectedField, obj *model.Post) (ret graphql.Marshaler) {
+func (ec *executionContext) _PostOut_creationTime(ctx context.Context, field graphql.CollectedField, obj *model.PostOut) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -796,42 +994,7 @@ func (ec *executionContext) _Post_reports(ctx context.Context, field graphql.Col
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:     "Post",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Reports, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.([]string)
-	fc.Result = res
-	return ec.marshalNString2ᚕstringᚄ(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Post_creationTime(ctx context.Context, field graphql.CollectedField, obj *model.Post) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "Post",
+		Object:     "PostOut",
 		Field:      field,
 		Args:       nil,
 		IsMethod:   false,
@@ -858,7 +1021,7 @@ func (ec *executionContext) _Post_creationTime(ctx context.Context, field graphq
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Post_initialReview(ctx context.Context, field graphql.CollectedField, obj *model.Post) (ret graphql.Marshaler) {
+func (ec *executionContext) _PostOut_initialReview(ctx context.Context, field graphql.CollectedField, obj *model.PostOut) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -866,7 +1029,7 @@ func (ec *executionContext) _Post_initialReview(ctx context.Context, field graph
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:     "Post",
+		Object:     "PostOut",
 		Field:      field,
 		Args:       nil,
 		IsMethod:   false,
@@ -893,7 +1056,7 @@ func (ec *executionContext) _Post_initialReview(ctx context.Context, field graph
 	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Post_image(ctx context.Context, field graphql.CollectedField, obj *model.Post) (ret graphql.Marshaler) {
+func (ec *executionContext) _PostOut_image(ctx context.Context, field graphql.CollectedField, obj *model.PostOut) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -901,7 +1064,7 @@ func (ec *executionContext) _Post_image(ctx context.Context, field graphql.Colle
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:     "Post",
+		Object:     "PostOut",
 		Field:      field,
 		Args:       nil,
 		IsMethod:   false,
@@ -926,6 +1089,41 @@ func (ec *executionContext) _Post_image(ctx context.Context, field graphql.Colle
 	res := resTmp.(string)
 	fc.Result = res
 	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _PostOut_blocked(ctx context.Context, field graphql.CollectedField, obj *model.PostOut) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "PostOut",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Blocked, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _PostReview_post(ctx context.Context, field graphql.CollectedField, obj *model.PostReview) (ret graphql.Marshaler) {
@@ -958,9 +1156,9 @@ func (ec *executionContext) _PostReview_post(ctx context.Context, field graphql.
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*model.Post)
+	res := resTmp.(*model.PostOut)
 	fc.Result = res
-	return ec.marshalNPost2ᚖQuicPosᚋgraphᚋmodelᚐPost(ctx, field.Selections, res)
+	return ec.marshalNPostOut2ᚖQuicPosᚋgraphᚋmodelᚐPostOut(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _PostReview_left(ctx context.Context, field graphql.CollectedField, obj *model.PostReview) (ret graphql.Marshaler) {
@@ -1035,9 +1233,9 @@ func (ec *executionContext) _Query_post(ctx context.Context, field graphql.Colle
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*model.Post)
+	res := resTmp.(*model.PostOut)
 	fc.Result = res
-	return ec.marshalNPost2ᚖQuicPosᚋgraphᚋmodelᚐPost(ctx, field.Selections, res)
+	return ec.marshalNPostOut2ᚖQuicPosᚋgraphᚋmodelᚐPostOut(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_createUser(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -1112,9 +1310,9 @@ func (ec *executionContext) _Query_viewerPost(ctx context.Context, field graphql
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*model.Post)
+	res := resTmp.(*model.PostOut)
 	fc.Result = res
-	return ec.marshalNPost2ᚖQuicPosᚋgraphᚋmodelᚐPost(ctx, field.Selections, res)
+	return ec.marshalNPostOut2ᚖQuicPosᚋgraphᚋmodelᚐPostOut(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_unReviewed(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -1228,76 +1426,6 @@ func (ec *executionContext) _Query___schema(ctx context.Context, field graphql.C
 	res := resTmp.(*introspection.Schema)
 	fc.Result = res
 	return ec.marshalO__Schema2ᚖgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐSchema(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _View_userId(ctx context.Context, field graphql.CollectedField, obj *model.View) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "View",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.UserID, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _View_time(ctx context.Context, field graphql.CollectedField, obj *model.View) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "View",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Time, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(float64)
-	fc.Result = res
-	return ec.marshalNFloat2float64(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) ___Directive_name(ctx context.Context, field graphql.CollectedField, obj *introspection.Directive) (ret graphql.Marshaler) {
@@ -2423,6 +2551,42 @@ func (ec *executionContext) unmarshalInputNewPost(ctx context.Context, obj inter
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputNewView(ctx context.Context, obj interface{}) (model.NewView, error) {
+	var it model.NewView
+	var asMap = obj.(map[string]interface{})
+
+	for k, v := range asMap {
+		switch k {
+		case "postID":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("postID"))
+			it.PostID, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "userId":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("userId"))
+			it.UserID, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "time":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("time"))
+			it.Time, err = ec.unmarshalNFloat2float64(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputReview(ctx context.Context, obj interface{}) (model.Review, error) {
 	var it model.Review
 	var asMap = obj.(map[string]interface{})
@@ -2500,6 +2664,21 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
+		case "share":
+			out.Values[i] = ec._Mutation_share(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "report":
+			out.Values[i] = ec._Mutation_report(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "view":
+			out.Values[i] = ec._Mutation_view(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -2511,59 +2690,59 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 	return out
 }
 
-var postImplementors = []string{"Post"}
+var postOutImplementors = []string{"PostOut"}
 
-func (ec *executionContext) _Post(ctx context.Context, sel ast.SelectionSet, obj *model.Post) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, postImplementors)
+func (ec *executionContext) _PostOut(ctx context.Context, sel ast.SelectionSet, obj *model.PostOut) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, postOutImplementors)
 
 	out := graphql.NewFieldSet(fields)
 	var invalids uint32
 	for i, field := range fields {
 		switch field.Name {
 		case "__typename":
-			out.Values[i] = graphql.MarshalString("Post")
+			out.Values[i] = graphql.MarshalString("PostOut")
 		case "ID":
-			out.Values[i] = ec._Post_ID(ctx, field, obj)
+			out.Values[i] = ec._PostOut_ID(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
 		case "text":
-			out.Values[i] = ec._Post_text(ctx, field, obj)
+			out.Values[i] = ec._PostOut_text(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
 		case "userId":
-			out.Values[i] = ec._Post_userId(ctx, field, obj)
+			out.Values[i] = ec._PostOut_userId(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
 		case "views":
-			out.Values[i] = ec._Post_views(ctx, field, obj)
+			out.Values[i] = ec._PostOut_views(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
 		case "shares":
-			out.Values[i] = ec._Post_shares(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		case "reports":
-			out.Values[i] = ec._Post_reports(ctx, field, obj)
+			out.Values[i] = ec._PostOut_shares(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
 		case "creationTime":
-			out.Values[i] = ec._Post_creationTime(ctx, field, obj)
+			out.Values[i] = ec._PostOut_creationTime(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
 		case "initialReview":
-			out.Values[i] = ec._Post_initialReview(ctx, field, obj)
+			out.Values[i] = ec._PostOut_initialReview(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
 		case "image":
-			out.Values[i] = ec._Post_image(ctx, field, obj)
+			out.Values[i] = ec._PostOut_image(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "blocked":
+			out.Values[i] = ec._PostOut_blocked(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
@@ -2685,38 +2864,6 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			out.Values[i] = ec._Query___type(ctx, field)
 		case "__schema":
 			out.Values[i] = ec._Query___schema(ctx, field)
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch()
-	if invalids > 0 {
-		return graphql.Null
-	}
-	return out
-}
-
-var viewImplementors = []string{"View"}
-
-func (ec *executionContext) _View(ctx context.Context, sel ast.SelectionSet, obj *model.View) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, viewImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	var invalids uint32
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("View")
-		case "userId":
-			out.Values[i] = ec._View_userId(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		case "time":
-			out.Values[i] = ec._View_time(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -3023,18 +3170,23 @@ func (ec *executionContext) unmarshalNNewPost2QuicPosᚋgraphᚋmodelᚐNewPost(
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalNPost2QuicPosᚋgraphᚋmodelᚐPost(ctx context.Context, sel ast.SelectionSet, v model.Post) graphql.Marshaler {
-	return ec._Post(ctx, sel, &v)
+func (ec *executionContext) unmarshalNNewView2QuicPosᚋgraphᚋmodelᚐNewView(ctx context.Context, v interface{}) (model.NewView, error) {
+	res, err := ec.unmarshalInputNewView(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalNPost2ᚖQuicPosᚋgraphᚋmodelᚐPost(ctx context.Context, sel ast.SelectionSet, v *model.Post) graphql.Marshaler {
+func (ec *executionContext) marshalNPostOut2QuicPosᚋgraphᚋmodelᚐPostOut(ctx context.Context, sel ast.SelectionSet, v model.PostOut) graphql.Marshaler {
+	return ec._PostOut(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNPostOut2ᚖQuicPosᚋgraphᚋmodelᚐPostOut(ctx context.Context, sel ast.SelectionSet, v *model.PostOut) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "must not be null")
 		}
 		return graphql.Null
 	}
-	return ec._Post(ctx, sel, v)
+	return ec._PostOut(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalNPostReview2QuicPosᚋgraphᚋmodelᚐPostReview(ctx context.Context, sel ast.SelectionSet, v model.PostReview) graphql.Marshaler {
@@ -3069,83 +3221,6 @@ func (ec *executionContext) marshalNString2string(ctx context.Context, sel ast.S
 		}
 	}
 	return res
-}
-
-func (ec *executionContext) unmarshalNString2ᚕstringᚄ(ctx context.Context, v interface{}) ([]string, error) {
-	var vSlice []interface{}
-	if v != nil {
-		if tmp1, ok := v.([]interface{}); ok {
-			vSlice = tmp1
-		} else {
-			vSlice = []interface{}{v}
-		}
-	}
-	var err error
-	res := make([]string, len(vSlice))
-	for i := range vSlice {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
-		res[i], err = ec.unmarshalNString2string(ctx, vSlice[i])
-		if err != nil {
-			return nil, err
-		}
-	}
-	return res, nil
-}
-
-func (ec *executionContext) marshalNString2ᚕstringᚄ(ctx context.Context, sel ast.SelectionSet, v []string) graphql.Marshaler {
-	ret := make(graphql.Array, len(v))
-	for i := range v {
-		ret[i] = ec.marshalNString2string(ctx, sel, v[i])
-	}
-
-	return ret
-}
-
-func (ec *executionContext) marshalNView2ᚕᚖQuicPosᚋgraphᚋmodelᚐViewᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.View) graphql.Marshaler {
-	ret := make(graphql.Array, len(v))
-	var wg sync.WaitGroup
-	isLen1 := len(v) == 1
-	if !isLen1 {
-		wg.Add(len(v))
-	}
-	for i := range v {
-		i := i
-		fc := &graphql.FieldContext{
-			Index:  &i,
-			Result: &v[i],
-		}
-		ctx := graphql.WithFieldContext(ctx, fc)
-		f := func(i int) {
-			defer func() {
-				if r := recover(); r != nil {
-					ec.Error(ctx, ec.Recover(ctx, r))
-					ret = nil
-				}
-			}()
-			if !isLen1 {
-				defer wg.Done()
-			}
-			ret[i] = ec.marshalNView2ᚖQuicPosᚋgraphᚋmodelᚐView(ctx, sel, v[i])
-		}
-		if isLen1 {
-			f(i)
-		} else {
-			go f(i)
-		}
-
-	}
-	wg.Wait()
-	return ret
-}
-
-func (ec *executionContext) marshalNView2ᚖQuicPosᚋgraphᚋmodelᚐView(ctx context.Context, sel ast.SelectionSet, v *model.View) graphql.Marshaler {
-	if v == nil {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	return ec._View(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalN__Directive2githubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐDirective(ctx context.Context, sel ast.SelectionSet, v introspection.Directive) graphql.Marshaler {

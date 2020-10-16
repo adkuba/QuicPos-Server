@@ -1,10 +1,8 @@
 package post
 
 import (
-	"QuicPos/graph/model"
 	"QuicPos/internal/mongodb"
 	"context"
-	"log"
 	"sort"
 	"time"
 
@@ -14,107 +12,102 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-//Post struct
-type Post struct {
-	Text          string
-	UserID        string
-	Reports       []string
-	CreationTime  time.Time
-	Image         string
-	InitialReview bool
-	Views         []*model.View
-	Shares        int
+//View details struct
+type View struct {
+	UserID string
+	Time   float32
 }
 
-//Output post struct
-type Output struct {
+//Post struct
+type Post struct {
 	ID            primitive.ObjectID `bson:"_id" json:"id,omitempty"`
 	Text          string
 	UserID        string
 	Reports       []string
-	Views         []*model.View
-	Shares        int
+	Views         []*View
+	Shares        []string
 	CreationTime  time.Time
 	Image         string
 	InitialReview bool
+	Blocked       bool
 }
 
 //OutputReview struct with number of posts left
 type OutputReview struct {
-	Post Output
+	Post Post
 	Left int
 }
 
 //Save saves post to database
-func (post Post) Save() string {
+func (post Post) Save() (string, error) {
 	result, insertErr := mongodb.PostsCol.InsertOne(mongodb.Ctx, post)
 	if insertErr != nil {
-		log.Fatal(insertErr)
+		return "", insertErr
 	}
 	newID := result.InsertedID.(primitive.ObjectID).String()
-	return newID
+	return newID, nil
 }
 
 //GetOne gets one random post
-func GetOne() Output {
+func GetOne() (Post, error) {
 	o1 := bson.D{{"$sample", bson.D{{"size", 1}}}}
 	showLoadedCursor, err := mongodb.PostsCol.Aggregate(context.TODO(), mongo.Pipeline{o1})
 	if err != nil {
-		log.Fatal(err)
+		return Post{}, err
 	}
-	var showsLoaded []*Output
+	var showsLoaded []*Post
 	if err = showLoadedCursor.All(context.TODO(), &showsLoaded); err != nil {
-		panic(err)
+		return Post{}, err
 	}
-	return *showsLoaded[0]
+	return *showsLoaded[0], nil
 }
 
 //GetByID gets post by id
-func GetByID(id string) Output {
+func GetByID(id string) (Post, error) {
 
 	objectID, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
-		log.Fatal("Invalid id")
+		return Post{}, err
 	}
 
 	result := mongodb.PostsCol.FindOne(context.TODO(), bson.M{"_id": objectID})
-	var post Output
+	var post Post
 	result.Decode(&post)
-	return post
+	return post, nil
 }
 
 //GetOneNew get the oldest post without initial review
-func GetOneNew() OutputReview {
+func GetOneNew() (OutputReview, error) {
 
 	findOptions := options.Find()
 	findOptions.SetSort(bson.D{{"creationtime", -1}})
 
 	result, err := mongodb.PostsCol.Find(context.TODO(), bson.M{"initialreview": false}, findOptions)
 	if err != nil {
-		log.Fatal("Can't find")
+		return OutputReview{}, err
 	}
 
-	var posts []*Output
+	var posts []*Post
 	if err = result.All(context.TODO(), &posts); err != nil {
-		panic(err)
+		return OutputReview{}, nil
 	}
 	if len(posts) > 0 {
-		return OutputReview{*posts[0], len(posts)}
+		return OutputReview{*posts[0], len(posts)}, nil
 	}
-	return OutputReview{Output{}, 0}
+	return OutputReview{Post{}, 0}, nil
 }
 
 //GetOneReported gets the most repoted post
-func GetOneReported() OutputReview {
+func GetOneReported() (OutputReview, error) {
 
 	result, err := mongodb.PostsCol.Find(context.TODO(), bson.M{"reports": bson.M{"$ne": nil}})
 	if err != nil {
-		log.Fatal("Can't find")
+		return OutputReview{}, err
 	}
 
-	var posts []*Output
+	var posts []*Post
 	if err = result.All(context.TODO(), &posts); err != nil {
-		panic(err)
+		return OutputReview{}, nil
 	}
 
 	sort.SliceStable(posts, func(i, j int) bool {
@@ -122,9 +115,9 @@ func GetOneReported() OutputReview {
 	})
 
 	if len(posts) > 0 {
-		return OutputReview{*posts[0], len(posts)}
+		return OutputReview{*posts[0], len(posts)}, nil
 	}
-	return OutputReview{Output{}, 0}
+	return OutputReview{Post{}, 0}, nil
 }
 
 //ReviewAction reviews post

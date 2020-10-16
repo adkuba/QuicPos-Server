@@ -70,14 +70,10 @@ query {
     text
     userId
     shares
-    views{
-      userId
-      time
-    }
+    views
     creationTime
     initialReview
     image
-    reports
   }
 }
 ```
@@ -99,14 +95,10 @@ query {
     text
     userId
     shares
-    views {
-      userId
-      time
-    }
+    views
     creationTime
     initialReview
     image
-    reports
   }
 }
 ```
@@ -120,14 +112,10 @@ query {
       text
       userId
       shares
-      views {
-        userId
-        time
-      }
+      views
       creationTime
       initialReview
       image
-      reports
     }
     left
   }
@@ -144,14 +132,10 @@ query {
       text
       userId
       shares
-      views {
-        userId
-        time
-      }
+      views
       creationTime
       initialReview
       image
-      reports
     }
     left
   }
