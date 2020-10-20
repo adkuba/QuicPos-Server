@@ -17,3 +17,5 @@
 QuicPos-key.json
 
 GeoLite2-City.mmdb
+
+bin/

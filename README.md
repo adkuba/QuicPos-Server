@@ -33,8 +33,18 @@ In internal/mongodb is file with all mongo database scripts. <br>
 If mongo can't find DNS edit <code>/etc/resolv.conf</code> and change nameserver to 8.8.8.8 <br>
 Important handling of ObjectID - see post.go. I don't know if it is good but works well.
 
-## TODO
-none
+## Docker
+Make docker image:
+* check if go builds correctly <code>go build -o bin/</code> and then run <code>bin/QuicPos</code>
+* build image <code>docker build -t quicpos .</code>
+* check if works <code>docker run -p 8080:8080 quicpos</code>
+* export to file <code>docker save -o ./bin/quicpos.tar quicpos</code>
+* transfer exported tar to your virtual machine <code>scp ./bin/quicpos.tar root@128.199.45.42:~/quicpos.tar</code>
+* connect with virtual machine <code>ssh root@128.199.45.42</code>
+* load tar <code>docker load -i quicpos.tar</code>
+* run in background exposing ports <code>docker run -d --rm -p 80:8080 quicpos</code>
+* check if is running <code>docker ps -a</code>
+* stop <code>docker stop \<name\></code>
 
 ## API
 Save post

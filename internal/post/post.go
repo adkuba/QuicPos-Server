@@ -20,6 +20,7 @@ type View struct {
 	Time         float64 //relative to post content and shares JAKI WZOR?
 	Localization string
 	Device       string
+	Date         time.Time
 }
 
 //Post struct
@@ -104,6 +105,7 @@ func AddView(newView model.NewView, ip string) (bool, error) {
 		Time:         newView.Time,
 		Localization: loc,
 		Device:       newView.DeviceDetails,
+		Date:         time.Now(),
 	}
 	views = append(views, view)
 

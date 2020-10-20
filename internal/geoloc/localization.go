@@ -7,7 +7,8 @@ import (
 
 //GetLocalization form ip
 func GetLocalization(ip string) (string, error) {
-	db, err := geoip2.Open("/home/kuba/Documents/gitfolders/QuicPos-Server/internal/geoloc/GeoLite2-City.mmdb")
+	//plik jest wykonywany z glownej sciezki dlatego mam internal geoloc
+	db, err := geoip2.Open("./internal/geoloc/GeoLite2-City.mmdb")
 	if err != nil {
 		return "", err
 	}
