@@ -45,9 +45,9 @@ type DirectiveRoot struct {
 type ComplexityRoot struct {
 	Mutation struct {
 		CreatePost func(childComplexity int, input model.NewPost) int
-		Report     func(childComplexity int, input string) int
+		Report     func(childComplexity int, input model.NewReportShare) int
 		Review     func(childComplexity int, input model.Review) int
-		Share      func(childComplexity int, input string) int
+		Share      func(childComplexity int, input model.NewReportShare) int
 		View       func(childComplexity int, input model.NewView) int
 	}
 
@@ -79,8 +79,8 @@ type ComplexityRoot struct {
 type MutationResolver interface {
 	CreatePost(ctx context.Context, input model.NewPost) (*model.PostOut, error)
 	Review(ctx context.Context, input model.Review) (bool, error)
-	Share(ctx context.Context, input string) (bool, error)
-	Report(ctx context.Context, input string) (bool, error)
+	Share(ctx context.Context, input model.NewReportShare) (bool, error)
+	Report(ctx context.Context, input model.NewReportShare) (bool, error)
 	View(ctx context.Context, input model.NewView) (bool, error)
 }
 type QueryResolver interface {
@@ -127,7 +127,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.Report(childComplexity, args["input"].(string)), true
+		return e.complexity.Mutation.Report(childComplexity, args["input"].(model.NewReportShare)), true
 
 	case "Mutation.review":
 		if e.complexity.Mutation.Review == nil {
@@ -151,7 +151,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.Share(childComplexity, args["input"].(string)), true
+		return e.complexity.Mutation.Share(childComplexity, args["input"].(model.NewReportShare)), true
 
 	case "Mutation.view":
 		if e.complexity.Mutation.View == nil {
@@ -387,6 +387,12 @@ input NewView {
   postID: String!
   userId: String!
   time: Float!
+  deviceDetails: String!
+}
+
+input NewReportShare {
+  userID: String!
+  postID: String!
 }
 
 input Review {
@@ -399,8 +405,8 @@ input Review {
 type Mutation {
   createPost(input: NewPost!): PostOut!
   review(input: Review!): Boolean!
-  share(input: String!): Boolean!
-  report(input: String!): Boolean!
+  share(input: NewReportShare!): Boolean!
+  report(input: NewReportShare!): Boolean!
   view(input: NewView!): Boolean!
 }`, BuiltIn: false},
 }
@@ -428,10 +434,10 @@ func (ec *executionContext) field_Mutation_createPost_args(ctx context.Context, 
 func (ec *executionContext) field_Mutation_report_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 string
+	var arg0 model.NewReportShare
 	if tmp, ok := rawArgs["input"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
-		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+		arg0, err = ec.unmarshalNNewReportShare2QuicPosᚋgraphᚋmodelᚐNewReportShare(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -458,10 +464,10 @@ func (ec *executionContext) field_Mutation_review_args(ctx context.Context, rawA
 func (ec *executionContext) field_Mutation_share_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 string
+	var arg0 model.NewReportShare
 	if tmp, ok := rawArgs["input"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
-		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+		arg0, err = ec.unmarshalNNewReportShare2QuicPosᚋgraphᚋmodelᚐNewReportShare(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -710,7 +716,7 @@ func (ec *executionContext) _Mutation_share(ctx context.Context, field graphql.C
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().Share(rctx, args["input"].(string))
+		return ec.resolvers.Mutation().Share(rctx, args["input"].(model.NewReportShare))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -752,7 +758,7 @@ func (ec *executionContext) _Mutation_report(ctx context.Context, field graphql.
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().Report(rctx, args["input"].(string))
+		return ec.resolvers.Mutation().Report(rctx, args["input"].(model.NewReportShare))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2551,6 +2557,34 @@ func (ec *executionContext) unmarshalInputNewPost(ctx context.Context, obj inter
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputNewReportShare(ctx context.Context, obj interface{}) (model.NewReportShare, error) {
+	var it model.NewReportShare
+	var asMap = obj.(map[string]interface{})
+
+	for k, v := range asMap {
+		switch k {
+		case "userID":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("userID"))
+			it.UserID, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "postID":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("postID"))
+			it.PostID, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputNewView(ctx context.Context, obj interface{}) (model.NewView, error) {
 	var it model.NewView
 	var asMap = obj.(map[string]interface{})
@@ -2578,6 +2612,14 @@ func (ec *executionContext) unmarshalInputNewView(ctx context.Context, obj inter
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("time"))
 			it.Time, err = ec.unmarshalNFloat2float64(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "deviceDetails":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("deviceDetails"))
+			it.DeviceDetails, err = ec.unmarshalNString2string(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -3167,6 +3209,11 @@ func (ec *executionContext) marshalNInt2int(ctx context.Context, sel ast.Selecti
 
 func (ec *executionContext) unmarshalNNewPost2QuicPosᚋgraphᚋmodelᚐNewPost(ctx context.Context, v interface{}) (model.NewPost, error) {
 	res, err := ec.unmarshalInputNewPost(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalNNewReportShare2QuicPosᚋgraphᚋmodelᚐNewReportShare(ctx context.Context, v interface{}) (model.NewReportShare, error) {
+	res, err := ec.unmarshalInputNewReportShare(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 

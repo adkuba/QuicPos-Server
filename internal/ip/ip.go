@@ -16,9 +16,8 @@ type contextKey struct {
 
 //DeviceDetails is
 type DeviceDetails struct {
-	IP        string
-	Port      string
-	UserAgent string
+	IP   string
+	Port string
 }
 
 //Middleware is
@@ -32,10 +31,12 @@ func Middleware() func(http.Handler) http.Handler {
 			}
 
 			deviceDetails := &DeviceDetails{
-				IP:        ip,
-				Port:      port,
-				UserAgent: r.UserAgent(),
+				IP:   ip,
+				Port: port,
 			}
+
+			//UserAgent: r.UserAgent(), NOT WORKING ON MOBILE APPS
+
 			ctx := context.WithValue(r.Context(), IPCtxKey, deviceDetails)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})

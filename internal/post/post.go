@@ -1,6 +1,8 @@
 package post
 
 import (
+	"QuicPos/graph/model"
+	"QuicPos/internal/geoloc"
 	"QuicPos/internal/mongodb"
 	"context"
 	"sort"
@@ -14,8 +16,10 @@ import (
 
 //View details struct
 type View struct {
-	UserID string
-	Time   float32
+	UserID       string
+	Time         float64 //relative to post content and shares JAKI WZOR?
+	Localization string
+	Device       string
 }
 
 //Post struct
@@ -36,6 +40,85 @@ type Post struct {
 type OutputReview struct {
 	Post Post
 	Left int
+}
+
+//Share post
+func Share(newReport model.NewReportShare) (bool, error) {
+	post, err := GetByID(newReport.PostID)
+	if err != nil {
+		return false, err
+	}
+	shares := post.Shares
+	shares = append(shares, newReport.UserID)
+
+	objectID, _ := primitive.ObjectIDFromHex(newReport.PostID)
+	_, err = mongodb.PostsCol.UpdateOne(
+		context.TODO(),
+		bson.M{"_id": objectID},
+		bson.D{
+			{"$set", bson.D{{"shares", shares}}},
+		},
+	)
+	if err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
+//Report post
+func Report(newReport model.NewReportShare) (bool, error) {
+	post, err := GetByID(newReport.PostID)
+	if err != nil {
+		return false, err
+	}
+	reports := post.Reports
+	reports = append(reports, newReport.UserID)
+
+	objectID, _ := primitive.ObjectIDFromHex(newReport.PostID)
+	_, err = mongodb.PostsCol.UpdateOne(
+		context.TODO(),
+		bson.M{"_id": objectID},
+		bson.D{
+			{"$set", bson.D{{"reports", reports}}},
+		},
+	)
+	if err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
+//AddView to post
+func AddView(newView model.NewView, ip string) (bool, error) {
+	post, err := GetByID(newView.PostID)
+	if err != nil {
+		return false, err
+	}
+	views := post.Views
+	loc, err := geoloc.GetLocalization(ip)
+	if err != nil {
+		return false, err
+	}
+	view := &View{
+		UserID:       newView.UserID,
+		Time:         newView.Time,
+		Localization: loc,
+		Device:       newView.DeviceDetails,
+	}
+	views = append(views, view)
+
+	objectID, _ := primitive.ObjectIDFromHex(newView.PostID)
+	_, err = mongodb.PostsCol.UpdateOne(
+		context.TODO(),
+		bson.M{"_id": objectID},
+		bson.D{
+			{"$set", bson.D{{"views", views}}},
+		},
+	)
+	if err != nil {
+		return false, err
+	}
+	return true, nil
 }
 
 //Save saves post to database

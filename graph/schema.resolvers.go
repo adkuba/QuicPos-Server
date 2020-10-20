@@ -11,8 +11,6 @@ import (
 	"QuicPos/internal/storage"
 	"context"
 	"errors"
-	"fmt"
-	"log"
 	"time"
 
 	"github.com/google/uuid"
@@ -41,18 +39,20 @@ func (r *mutationResolver) Review(ctx context.Context, input model.Review) (bool
 	return false, errors.New("bad password")
 }
 
-func (r *mutationResolver) Share(ctx context.Context, input string) (bool, error) {
-	panic(fmt.Errorf("not implemented"))
+func (r *mutationResolver) Share(ctx context.Context, input model.NewReportShare) (bool, error) {
+	result, err := post.Share(input)
+	return result, err
 }
 
-func (r *mutationResolver) Report(ctx context.Context, input string) (bool, error) {
-	panic(fmt.Errorf("not implemented"))
+func (r *mutationResolver) Report(ctx context.Context, input model.NewReportShare) (bool, error) {
+	result, err := post.Report(input)
+	return result, err
 }
 
 func (r *mutationResolver) View(ctx context.Context, input model.NewView) (bool, error) {
 	//tu mam dokladne dane urzadzenia
-	log.Println(ctx.Value(ip.IPCtxKey).(*ip.DeviceDetails).UserAgent)
-	panic(fmt.Errorf("not implemented"))
+	status, err := post.AddView(input, ctx.Value(ip.IPCtxKey).(*ip.DeviceDetails).IP)
+	return status, err
 }
 
 func (r *queryResolver) Post(ctx context.Context, userID string, normalMode bool) (*model.PostOut, error) {

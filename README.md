@@ -14,6 +14,8 @@ Workflow:
 - generate functions with <code>go run github.com/99designs/gqlgen generate</code>
 - go to <code>schema.resolvers.go</code> and implement functions.
 
+GeoLite2-City.mmdb file needed!
+
 ## GraphQL
 GraphQL schema is important, it defines how results will be sent, data structure.
 
@@ -32,9 +34,9 @@ If mongo can't find DNS edit <code>/etc/resolv.conf</code> and change nameserver
 Important handling of ObjectID - see post.go. I don't know if it is good but works well.
 
 ## TODO
-Zamina panic na wywalanie errors.New("message")
+none
 
-## Examples
+## API
 Save post
 ```graphql
 mutation create {
@@ -170,5 +172,34 @@ mutation review {
       password: "funia"
     }
   )
+}
+```
+
+
+---
+New view
+```graphql
+mutation view {
+  view(input: { postID: "5f79cc2f9ec125d75f2e36e4", userId: "kuba", time: 1.0, deviceDetails: "iPhone" })
+}
+
+```
+
+
+---
+New report
+```graphql
+mutation review {
+  report(input: { userID: "kuba2", postID: "5f79cc2f9ec125d75f2e36e4" })
+}
+
+```
+
+
+---
+New share
+```graphql
+mutation share {
+  share(input: {userID: "kuba", postID: "5f79cc2f9ec125d75f2e36e4"})
 }
 ```

@@ -36,6 +36,12 @@ input NewView {
   postID: String!
   userId: String!
   time: Float!
+  deviceDetails: String!
+}
+
+input NewReportShare {
+  userID: String!
+  postID: String!
 }
 
 input Review {
@@ -48,7 +54,7 @@ input Review {
 type Mutation {
   createPost(input: NewPost!): PostOut!
   review(input: Review!): Boolean!
-  share(input: String!): Boolean!
-  report(input: String!): Boolean!
+  share(input: NewReportShare!): Boolean!
+  report(input: NewReportShare!): Boolean!
   view(input: NewView!): Boolean!
 }

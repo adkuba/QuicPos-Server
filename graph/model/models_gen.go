@@ -8,10 +8,16 @@ type NewPost struct {
 	Image  string `json:"image"`
 }
 
+type NewReportShare struct {
+	UserID string `json:"userID"`
+	PostID string `json:"postID"`
+}
+
 type NewView struct {
-	PostID string  `json:"postID"`
-	UserID string  `json:"userId"`
-	Time   float64 `json:"time"`
+	PostID        string  `json:"postID"`
+	UserID        string  `json:"userId"`
+	Time          float64 `json:"time"`
+	DeviceDetails string  `json:"deviceDetails"`
 }
 
 type PostOut struct {
