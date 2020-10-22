@@ -33,6 +33,16 @@ In internal/mongodb is file with all mongo database scripts. <br>
 If mongo can't find DNS edit <code>/etc/resolv.conf</code> and change nameserver to 8.8.8.8 <br>
 Important handling of ObjectID - see post.go. I don't know if it is good but works well.
 
+## Deploy
+You don't have to create docker image. Just build golang project, send to virtual machine and run. Then execute:
+```sh
+[1]+  Stopped                 myprogram
+$ disown -h %1
+$ bg 1
+[1]+ myprogram &
+$ logout
+```
+
 ## Docker
 Make docker image:
 * check if go builds correctly <code>go build -o bin/</code> and then run <code>bin/QuicPos</code>
@@ -61,14 +71,10 @@ mutation create {
     text
     userId
     shares
-    views {
-      userId
-      time
-    }
+    views
     creationTime
     initialReview
     image
-    reports
   }
 }
 ```

@@ -14,10 +14,12 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 func (r *mutationResolver) CreatePost(ctx context.Context, input model.NewPost) (*model.PostOut, error) {
 	var post post.Post
+	post.ID = primitive.NewObjectIDFromTimestamp(time.Now())
 	post.Text = input.Text
 	post.UserID = input.UserID
 	post.CreationTime = time.Now()
