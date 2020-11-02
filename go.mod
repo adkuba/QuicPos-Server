@@ -11,6 +11,7 @@ require (
 	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646
 	github.com/oschwald/geoip2-golang v1.4.0
 	github.com/rs/cors v1.7.0
+	github.com/tensorflow/tensorflow v1.15.4
 	github.com/vektah/gqlparser/v2 v2.1.0
 	go.mongodb.org/mongo-driver v1.4.1
 	golang.org/x/net v0.0.0-20201002202402-0a1ea396d57c // indirect

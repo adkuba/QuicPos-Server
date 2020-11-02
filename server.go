@@ -5,6 +5,7 @@ import (
 	"QuicPos/graph/generated"
 	"QuicPos/internal/ip"
 	"QuicPos/internal/mongodb"
+	"QuicPos/internal/tensorflow"
 	"log"
 	"net/http"
 	"os"
@@ -36,6 +37,8 @@ func main() {
 	if port == "" {
 		port = defaultPort
 	}
+
+	tensorflow.InitModels()
 
 	mongodb.InitDB()
 	defer mongodb.DisconnectDB()
