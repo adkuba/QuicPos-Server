@@ -3,8 +3,8 @@
 # https://gqlgen.com/getting-started/
 
 type Query {
-  post(userId: String!, normalMode: Boolean!): PostOut!
-  createUser: String!
+  post(userId: Int!, normalMode: Boolean!): PostOut!
+  createUser: Int!
   viewerPost(id: String!): PostOut!
   unReviewed(password: String!, new: Boolean!): PostReview!
 }
@@ -12,7 +12,7 @@ type Query {
 type PostOut {
   ID: String!
   text: String!
-  userId: String!
+  userId: Int!
   views: Int!
   shares: Int!
   creationTime: String!
@@ -28,19 +28,19 @@ type PostReview {
 
 input NewPost {
   text: String!
-  userId: String!
+  userId: Int!
   image: String! #base64 string
 }
 
 input NewView {
   postID: String!
-  userId: String!
+  userId: Int!
   time: Float!
-  deviceDetails: String!
+  deviceDetails: Int!
 }
 
 input NewReportShare {
-  userID: String!
+  userID: Int!
   postID: String!
 }
 

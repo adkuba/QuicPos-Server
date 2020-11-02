@@ -13,7 +13,6 @@ import (
 	"errors"
 	"time"
 
-	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
@@ -57,14 +56,15 @@ func (r *mutationResolver) View(ctx context.Context, input model.NewView) (bool,
 	return status, err
 }
 
-func (r *queryResolver) Post(ctx context.Context, userID string, normalMode bool) (*model.PostOut, error) {
+func (r *queryResolver) Post(ctx context.Context, userID int, normalMode bool) (*model.PostOut, error) {
 	//userID and normalMode to be used
-	post, err := post.GetOne()
+	post, err := post.GetOne(userID)
 	return &model.PostOut{ID: post.ID.String(), Text: post.Text, UserID: post.UserID, Shares: len(post.Shares), Views: len(post.Views), InitialReview: post.InitialReview, Image: post.Image, CreationTime: post.CreationTime.String(), Blocked: post.Blocked}, err
 }
 
-func (r *queryResolver) CreateUser(ctx context.Context) (string, error) {
-	return uuid.New().String(), nil
+func (r *queryResolver) CreateUser(ctx context.Context) (int, error) {
+	counter++
+	return counter, nil
 }
 
 func (r *queryResolver) ViewerPost(ctx context.Context, id string) (*model.PostOut, error) {
@@ -105,3 +105,11 @@ func (r *Resolver) Query() generated.QueryResolver { return &queryResolver{r} }
 
 type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
+
+// !!! WARNING !!!
+// The code below was going to be deleted when updating resolvers. It has been copied here so you have
+// one last chance to move it out of harms way if you want. There are two reasons this happens:
+//  - When renaming or deleting a resolver the old code will be put in here. You can safely delete
+//    it when you're done.
+//  - You have helper methods in this file. Move them out to keep these resolver files clean.
+var counter = 0

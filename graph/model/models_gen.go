@@ -4,26 +4,26 @@ package model
 
 type NewPost struct {
 	Text   string `json:"text"`
-	UserID string `json:"userId"`
+	UserID int    `json:"userId"`
 	Image  string `json:"image"`
 }
 
 type NewReportShare struct {
-	UserID string `json:"userID"`
+	UserID int    `json:"userID"`
 	PostID string `json:"postID"`
 }
 
 type NewView struct {
 	PostID        string  `json:"postID"`
-	UserID        string  `json:"userId"`
+	UserID        int     `json:"userId"`
 	Time          float64 `json:"time"`
-	DeviceDetails string  `json:"deviceDetails"`
+	DeviceDetails int     `json:"deviceDetails"`
 }
 
 type PostOut struct {
 	ID            string `json:"ID"`
 	Text          string `json:"text"`
-	UserID        string `json:"userId"`
+	UserID        int    `json:"userId"`
 	Views         int    `json:"views"`
 	Shares        int    `json:"shares"`
 	CreationTime  string `json:"creationTime"`

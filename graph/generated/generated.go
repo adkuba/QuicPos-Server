@@ -70,7 +70,7 @@ type ComplexityRoot struct {
 
 	Query struct {
 		CreateUser func(childComplexity int) int
-		Post       func(childComplexity int, userID string, normalMode bool) int
+		Post       func(childComplexity int, userID int, normalMode bool) int
 		UnReviewed func(childComplexity int, password string, new bool) int
 		ViewerPost func(childComplexity int, id string) int
 	}
@@ -84,8 +84,8 @@ type MutationResolver interface {
 	View(ctx context.Context, input model.NewView) (bool, error)
 }
 type QueryResolver interface {
-	Post(ctx context.Context, userID string, normalMode bool) (*model.PostOut, error)
-	CreateUser(ctx context.Context) (string, error)
+	Post(ctx context.Context, userID int, normalMode bool) (*model.PostOut, error)
+	CreateUser(ctx context.Context) (int, error)
 	ViewerPost(ctx context.Context, id string) (*model.PostOut, error)
 	UnReviewed(ctx context.Context, password string, new bool) (*model.PostReview, error)
 }
@@ -259,7 +259,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Query.Post(childComplexity, args["userId"].(string), args["normalMode"].(bool)), true
+		return e.complexity.Query.Post(childComplexity, args["userId"].(int), args["normalMode"].(bool)), true
 
 	case "Query.unReviewed":
 		if e.complexity.Query.UnReviewed == nil {
@@ -354,8 +354,8 @@ var sources = []*ast.Source{
 # https://gqlgen.com/getting-started/
 
 type Query {
-  post(userId: String!, normalMode: Boolean!): PostOut!
-  createUser: String!
+  post(userId: Int!, normalMode: Boolean!): PostOut!
+  createUser: Int!
   viewerPost(id: String!): PostOut!
   unReviewed(password: String!, new: Boolean!): PostReview!
 }
@@ -363,7 +363,7 @@ type Query {
 type PostOut {
   ID: String!
   text: String!
-  userId: String!
+  userId: Int!
   views: Int!
   shares: Int!
   creationTime: String!
@@ -379,19 +379,19 @@ type PostReview {
 
 input NewPost {
   text: String!
-  userId: String!
+  userId: Int!
   image: String! #base64 string
 }
 
 input NewView {
   postID: String!
-  userId: String!
+  userId: Int!
   time: Float!
-  deviceDetails: String!
+  deviceDetails: Int!
 }
 
 input NewReportShare {
-  userID: String!
+  userID: Int!
   postID: String!
 }
 
@@ -509,10 +509,10 @@ func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs
 func (ec *executionContext) field_Query_post_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 string
+	var arg0 int
 	if tmp, ok := rawArgs["userId"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("userId"))
-		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+		arg0, err = ec.unmarshalNInt2int(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -917,9 +917,9 @@ func (ec *executionContext) _PostOut_userId(ctx context.Context, field graphql.C
 		}
 		return graphql.Null
 	}
-	res := resTmp.(string)
+	res := resTmp.(int)
 	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
+	return ec.marshalNInt2int(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _PostOut_views(ctx context.Context, field graphql.CollectedField, obj *model.PostOut) (ret graphql.Marshaler) {
@@ -1227,7 +1227,7 @@ func (ec *executionContext) _Query_post(ctx context.Context, field graphql.Colle
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().Post(rctx, args["userId"].(string), args["normalMode"].(bool))
+		return ec.resolvers.Query().Post(rctx, args["userId"].(int), args["normalMode"].(bool))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1274,9 +1274,9 @@ func (ec *executionContext) _Query_createUser(ctx context.Context, field graphql
 		}
 		return graphql.Null
 	}
-	res := resTmp.(string)
+	res := resTmp.(int)
 	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
+	return ec.marshalNInt2int(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_viewerPost(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -2539,7 +2539,7 @@ func (ec *executionContext) unmarshalInputNewPost(ctx context.Context, obj inter
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("userId"))
-			it.UserID, err = ec.unmarshalNString2string(ctx, v)
+			it.UserID, err = ec.unmarshalNInt2int(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -2567,7 +2567,7 @@ func (ec *executionContext) unmarshalInputNewReportShare(ctx context.Context, ob
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("userID"))
-			it.UserID, err = ec.unmarshalNString2string(ctx, v)
+			it.UserID, err = ec.unmarshalNInt2int(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -2603,7 +2603,7 @@ func (ec *executionContext) unmarshalInputNewView(ctx context.Context, obj inter
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("userId"))
-			it.UserID, err = ec.unmarshalNString2string(ctx, v)
+			it.UserID, err = ec.unmarshalNInt2int(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -2619,7 +2619,7 @@ func (ec *executionContext) unmarshalInputNewView(ctx context.Context, obj inter
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("deviceDetails"))
-			it.DeviceDetails, err = ec.unmarshalNString2string(ctx, v)
+			it.DeviceDetails, err = ec.unmarshalNInt2int(ctx, v)
 			if err != nil {
 				return it, err
 			}

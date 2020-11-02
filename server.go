@@ -15,7 +15,7 @@ import (
 	"github.com/rs/cors"
 )
 
-const defaultPort = "80"
+const defaultPort = "8080"
 
 //server
 func main() {

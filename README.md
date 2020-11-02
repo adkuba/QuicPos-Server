@@ -1,6 +1,8 @@
 # QuicPos
 Application backend in golang
 
+## WARNING
+In case of system crash user counter is reseting!!!! Need to be set! Implement getting the largest userID in python microservice. Bad method!
 
 ## Golang notes
 Simple installation - only remember about path variable. I needed to edit <code>/etc/environment</code>
