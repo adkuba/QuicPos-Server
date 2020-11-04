@@ -7,6 +7,7 @@ import (
 	"image"
 	"image/jpeg"
 	"io"
+	"io/ioutil"
 	"log"
 	"strings"
 	"time"
@@ -16,6 +17,39 @@ import (
 	"github.com/nfnt/resize"
 	"google.golang.org/api/option"
 )
+
+var storageClient *storage.Client
+var ctx context.Context
+
+//InitStorage client
+func InitStorage() {
+	ctx = context.Background()
+	client, err := storage.NewClient(ctx, option.WithCredentialsFile("QuicPos-key.json"))
+	if err != nil {
+		log.Fatalf("Failed to create client: %v", err)
+	} else {
+		storageClient = client
+	}
+}
+
+//ReadFile from storage
+func ReadFile(fileName string) (data []byte) {
+
+	rc, err := storageClient.Bucket("quicpos-images").Object(fileName).NewReader(ctx)
+	if err != nil {
+		log.Println("readFile: unable to open file from bucket, file", fileName, err)
+		return
+	}
+	defer rc.Close()
+
+	data, err = ioutil.ReadAll(rc)
+	if err != nil {
+		log.Println("readFile: unable to read data from bucket, file", fileName, err)
+		return
+	}
+
+	return data
+}
 
 func uploadSmaller(data []byte, name string) {
 
@@ -38,24 +72,17 @@ func uploadSmaller(data []byte, name string) {
 
 func saveToStorage(imageName string, data []byte) string {
 
-	// Creates a client.
-	ctx := context.Background()
-	storageClient, err := storage.NewClient(ctx, option.WithCredentialsFile("QuicPos-key.json"))
-	if err != nil {
-		log.Fatalf("Failed to create client: %v", err)
-	}
-
 	//file upload
 	r := bytes.NewReader(data)
 	ctx, cancel := context.WithTimeout(ctx, time.Second*50)
 	defer cancel()
 	wc := storageClient.Bucket("quicpos-images").Object(imageName).NewWriter(ctx)
-	if _, err = io.Copy(wc, r); err != nil {
-		log.Fatalf("io.Copy: %v", err)
+	if _, err := io.Copy(wc, r); err != nil {
+		log.Println("io.Copy: ", err)
 		return "error"
 	}
 	if err := wc.Close(); err != nil {
-		log.Fatalf("Writer.Close: %v", err)
+		log.Println("Writer.Close: ", err)
 		return "error"
 	}
 	return "ok"

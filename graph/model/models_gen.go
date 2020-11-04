@@ -35,6 +35,7 @@ type PostOut struct {
 type PostReview struct {
 	Post *PostOut `json:"post"`
 	Left int      `json:"left"`
+	Spam float64  `json:"spam"`
 }
 
 type Review struct {

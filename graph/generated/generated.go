@@ -66,6 +66,7 @@ type ComplexityRoot struct {
 	PostReview struct {
 		Left func(childComplexity int) int
 		Post func(childComplexity int) int
+		Spam func(childComplexity int) int
 	}
 
 	Query struct {
@@ -242,6 +243,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.PostReview.Post(childComplexity), true
 
+	case "PostReview.spam":
+		if e.complexity.PostReview.Spam == nil {
+			break
+		}
+
+		return e.complexity.PostReview.Spam(childComplexity), true
+
 	case "Query.createUser":
 		if e.complexity.Query.CreateUser == nil {
 			break
@@ -375,6 +383,7 @@ type PostOut {
 type PostReview {
   post: PostOut!
   left: Int!
+  spam: Float!
 }
 
 input NewPost {
@@ -1200,6 +1209,41 @@ func (ec *executionContext) _PostReview_left(ctx context.Context, field graphql.
 	res := resTmp.(int)
 	fc.Result = res
 	return ec.marshalNInt2int(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _PostReview_spam(ctx context.Context, field graphql.CollectedField, obj *model.PostReview) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "PostReview",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Spam, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(float64)
+	fc.Result = res
+	return ec.marshalNFloat2float64(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_post(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -2817,6 +2861,11 @@ func (ec *executionContext) _PostReview(ctx context.Context, sel ast.SelectionSe
 			}
 		case "left":
 			out.Values[i] = ec._PostReview_left(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "spam":
+			out.Values[i] = ec._PostReview_spam(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}

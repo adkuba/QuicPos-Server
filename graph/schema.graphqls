@@ -24,6 +24,7 @@ type PostOut {
 type PostReview {
   post: PostOut!
   left: Int!
+  spam: Float!
 }
 
 input NewPost {

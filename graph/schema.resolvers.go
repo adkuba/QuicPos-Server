@@ -6,6 +6,7 @@ package graph
 import (
 	"QuicPos/graph/generated"
 	"QuicPos/graph/model"
+	"QuicPos/internal/data"
 	"QuicPos/internal/ip"
 	"QuicPos/internal/post"
 	"QuicPos/internal/storage"
@@ -17,19 +18,19 @@ import (
 )
 
 func (r *mutationResolver) CreatePost(ctx context.Context, input model.NewPost) (*model.PostOut, error) {
-	var post post.Post
-	post.ID = primitive.NewObjectIDFromTimestamp(time.Now())
-	post.Text = input.Text
-	post.UserID = input.UserID
-	post.CreationTime = time.Now()
-	post.Image = storage.UploadFile(input.Image)
-	post.InitialReview = false
-	post.Reports = nil
-	post.Shares = nil
-	post.Views = nil
-	post.Blocked = false
-	postID, err := post.Save()
-	return &model.PostOut{ID: postID, Text: post.Text, UserID: post.UserID, Shares: len(post.Shares), Views: len(post.Views), CreationTime: post.CreationTime.String(), InitialReview: post.InitialReview, Image: post.Image, Blocked: post.Blocked}, err
+	var postO data.Post
+	postO.ID = primitive.NewObjectIDFromTimestamp(time.Now())
+	postO.Text = input.Text
+	postO.UserID = input.UserID
+	postO.CreationTime = time.Now()
+	postO.Image = storage.UploadFile(input.Image)
+	postO.InitialReview = false
+	postO.Reports = nil
+	postO.Shares = nil
+	postO.Views = nil
+	postO.Blocked = false
+	postID, err := post.Save(postO)
+	return &model.PostOut{ID: postID, Text: postO.Text, UserID: postO.UserID, Shares: len(postO.Shares), Views: len(postO.Views), CreationTime: postO.CreationTime.String(), InitialReview: postO.InitialReview, Image: postO.Image, Blocked: postO.Blocked}, err
 }
 
 func (r *mutationResolver) Review(ctx context.Context, input model.Review) (bool, error) {
@@ -58,7 +59,7 @@ func (r *mutationResolver) View(ctx context.Context, input model.NewView) (bool,
 
 func (r *queryResolver) Post(ctx context.Context, userID int, normalMode bool) (*model.PostOut, error) {
 	//userID and normalMode to be used
-	post, err := post.GetOne(userID)
+	post, err := post.GetOne(userID, ctx.Value(ip.IPCtxKey).(*ip.DeviceDetails).IP)
 	return &model.PostOut{ID: post.ID.String(), Text: post.Text, UserID: post.UserID, Shares: len(post.Shares), Views: len(post.Views), InitialReview: post.InitialReview, Image: post.Image, CreationTime: post.CreationTime.String(), Blocked: post.Blocked}, err
 }
 
@@ -74,12 +75,13 @@ func (r *queryResolver) ViewerPost(ctx context.Context, id string) (*model.PostO
 
 func (r *queryResolver) UnReviewed(ctx context.Context, password string, new bool) (*model.PostReview, error) {
 	if password == "funia" {
-		var postReview post.OutputReview
+		var postReview data.OutputReview
+		var spam float32
 		var err error
 		if new {
-			postReview, err = post.GetOneNew()
+			postReview, spam, err = post.GetOneNew()
 		} else {
-			postReview, err = post.GetOneReported()
+			postReview, spam, err = post.GetOneReported()
 		}
 		post := model.PostOut{
 			ID:            postReview.Post.ID.String(),
@@ -92,7 +94,7 @@ func (r *queryResolver) UnReviewed(ctx context.Context, password string, new boo
 			CreationTime:  postReview.Post.CreationTime.String(),
 			Blocked:       postReview.Post.Blocked,
 		}
-		return &model.PostReview{Post: &post, Left: postReview.Left}, err
+		return &model.PostReview{Post: &post, Left: postReview.Left, Spam: float64(spam)}, err
 	}
 	return &model.PostReview{Post: &model.PostOut{}, Left: 0}, errors.New("bad password")
 }

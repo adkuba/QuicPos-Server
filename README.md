@@ -8,6 +8,13 @@ In case of system crash user counter is reseting!!!! Need to be set! Implement g
 Initially I couldn't install tensorflow. The reason was that golang package links to official tensorflow repo, but doesn't support 2.0 version. So to install tensorflow I needed to execute <code>go get github.com/tensorflow/tensorflow/tensorflow/go@v1.15.4</code> Also I skipped naming layers when saving model to pb file in keras but I needed to check default names with <code>saved_model_cli show --dir out/ --all</code> field name without ":0". Additional steps that may help:
 * installing tensorflow C [tutorial](https://www.tensorflow.org/install/lang_c)
 * interesting [tutorial](https://tonytruong.net/running-a-keras-tensorflow-model-in-golang/)
+* all values needs to be float32
+* I chose multiplication in final results comparing (recommender), example: 
+  * ADDITION: 30s view 60% share chance = 0,03 + 0,6 = **0,63**
+  * ADDITION: 60s view 50% share chance = 0,06 + 0,5 = **0,56**
+  * MULTIPLICATION: 0,03 * 0,6 = **0,018**
+  * MULTIPLICATION: 0,06 * 0,5 = **0,030**
+* max view time for net is 1000s = 16(2/3)min
 
 ## Golang notes
 Simple installation - only remember about path variable. I needed to edit <code>/etc/environment</code>
@@ -143,6 +150,7 @@ query {
       image
     }
     left
+    spam
   }
 }
 ```
@@ -163,6 +171,7 @@ query {
       image
     }
     left
+    spam
   }
 }
 ```
