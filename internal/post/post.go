@@ -5,6 +5,7 @@ import (
 	"QuicPos/internal/data"
 	"QuicPos/internal/geoloc"
 	"QuicPos/internal/mongodb"
+	"QuicPos/internal/stats"
 	"QuicPos/internal/tensorflow"
 	"context"
 	"log"
@@ -86,6 +87,13 @@ func AddView(newView model.NewView, ip string) (bool, error) {
 	}
 	views = append(views, view)
 
+	if newView.PostID != "5fa55095fd6ff21ede156479" {
+		err = stats.NewView(*view)
+		if err != nil {
+			return false, err
+		}
+	}
+
 	objectID, _ := primitive.ObjectIDFromHex(newView.PostID)
 	_, err = mongodb.PostsCol.UpdateOne(
 		context.TODO(),
@@ -106,6 +114,12 @@ func Save(post data.Post) (string, error) {
 	if insertErr != nil {
 		return "", insertErr
 	}
+
+	err := stats.NewPost()
+	if err != nil {
+		return "", err
+	}
+
 	newID := result.InsertedID.(primitive.ObjectID).String()
 	return newID, nil
 }

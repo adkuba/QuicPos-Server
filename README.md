@@ -57,7 +57,7 @@ $ bg 1
 $ logout
 ```
 
-## Docker
+## Docker* napisanie statystyk na serwerze (moze być bez implementacji na stronie )
 Make docker image:
 * check if go builds correctly <code>go build -o bin/</code> and then run <code>bin/QuicPos</code>
 * build image <code>docker build -t quicpos .</code>
@@ -77,7 +77,7 @@ mutation create {
   createPost(
     input: {
       text: "My new post"
-      userId: "kuba"
+      userId: -1
       image: "base64-string"
     }
   ) {
@@ -212,7 +212,7 @@ mutation review {
 New view
 ```graphql
 mutation view {
-  view(input: { postID: "5f79cc2f9ec125d75f2e36e4", userId: "kuba", time: 1.0, deviceDetails: "iPhone" })
+  view(input: { postID: "5f79cc2f9ec125d75f2e36e4", userId: -1, time: 1.0, deviceDetails: 1 })
 }
 
 ```

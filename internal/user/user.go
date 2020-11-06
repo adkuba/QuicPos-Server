@@ -3,6 +3,7 @@ package user
 import (
 	"QuicPos/graph/model"
 	"QuicPos/internal/post"
+	"QuicPos/internal/stats"
 )
 
 var counter = 0
@@ -37,5 +38,11 @@ func GetNextUser(ip string) (int, error) {
 	if err != nil {
 		return -1, err
 	}
+
+	err = stats.NewUser()
+	if err != nil {
+		return -1, err
+	}
+
 	return counter, nil
 }

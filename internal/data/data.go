@@ -5,6 +5,16 @@ import (
 	"time"
 )
 
+//Day for stats
+type Day struct {
+	ID        primitive.ObjectID `bson:"_id" json:"id,omitempty"`
+	Date      time.Time
+	NewUsers  int
+	NewPosts  int
+	Views     int
+	WatchTime float64
+}
+
 //View details struct
 type View struct {
 	UserID       int
