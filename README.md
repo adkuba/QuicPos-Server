@@ -2,7 +2,7 @@
 Application backend in golang
 
 ## WARNING
-In case of system crash user counter is reseting!!!! Need to be set! Implement getting the largest userID in python microservice. Bad method!
+* my server only consumes jpeg images
 
 ## Tensorflow
 Initially I couldn't install tensorflow. The reason was that golang package links to official tensorflow repo, but doesn't support 2.0 version. So to install tensorflow I needed to execute <code>go get github.com/tensorflow/tensorflow/tensorflow/go@v1.15.4</code> Also I skipped naming layers when saving model to pb file in keras but I needed to check default names with <code>saved_model_cli show --dir out/ --all</code> field name without ":0". Additional steps that may help:

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/base64"
+	"errors"
 	"image"
 	"image/jpeg"
 	"io"
@@ -51,26 +52,28 @@ func ReadFile(fileName string) (data []byte) {
 	return data
 }
 
-func uploadSmaller(data []byte, name string) {
+func uploadSmaller(data []byte, name string) error {
 
 	image, _, err := image.Decode(bytes.NewReader(data))
 	if err != nil {
-		panic("Failed to decode image")
+		return errors.New("Failed to decode image")
 	}
 	newImage := resize.Resize(224, 224, image, resize.Lanczos3)
 	buf := new(bytes.Buffer)
 	err = jpeg.Encode(buf, newImage, nil)
 	if err != nil {
-		panic("Failed to encode image")
+		return errors.New("Failed to encode image")
 	}
 
 	result := saveToStorage(name+"_small", buf.Bytes())
-	if result == "error" {
-		panic("Cannot save smaller")
+	if result != nil {
+		return errors.New("Cannot save smaller")
 	}
+
+	return nil
 }
 
-func saveToStorage(imageName string, data []byte) string {
+func saveToStorage(imageName string, data []byte) error {
 
 	//file upload
 	r := bytes.NewReader(data)
@@ -78,41 +81,42 @@ func saveToStorage(imageName string, data []byte) string {
 	defer cancel()
 	wc := storageClient.Bucket("quicpos-images").Object(imageName).NewWriter(ctx)
 	if _, err := io.Copy(wc, r); err != nil {
-		log.Println("io.Copy: ", err)
-		return "error"
+		return err
 	}
 	if err := wc.Close(); err != nil {
-		log.Println("Writer.Close: ", err)
-		return "error"
+		return err
 	}
-	return "ok"
+	return nil
 }
 
 //UploadFile uploads file to google cloud storage client returns file name or error
-func UploadFile(data string) string {
+func UploadFile(data string) (string, error) {
 
 	//check
 	if data == "" {
-		return ""
+		return "", nil
 	}
 
 	//file decoding
 	idx := strings.Index(data, ";base64,")
 	if idx < 0 {
-		panic("InvalidImage")
+		return "", errors.New("InvalidImage")
 	}
 	unbased, err := base64.StdEncoding.DecodeString(data[idx+8:])
 	if err != nil {
-		panic("Cannot decode b64")
+		return "", errors.New("Cannot decode b64")
 	}
 
 	imageName := uuid.New().String()
 	result := saveToStorage(imageName, unbased)
-	if result == "error" {
-		panic("Cannot send to storage")
+	if result != nil {
+		return "", errors.New("Cannot send to storage")
 	}
 
-	go uploadSmaller(unbased, imageName)
+	err = uploadSmaller(unbased, imageName)
+	if err != nil {
+		return "", err
+	}
 
-	return imageName
+	return imageName, nil
 }

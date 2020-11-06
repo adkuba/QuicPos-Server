@@ -10,6 +10,7 @@ import (
 	"QuicPos/internal/ip"
 	"QuicPos/internal/post"
 	"QuicPos/internal/storage"
+	"QuicPos/internal/user"
 	"context"
 	"errors"
 	"time"
@@ -19,11 +20,15 @@ import (
 
 func (r *mutationResolver) CreatePost(ctx context.Context, input model.NewPost) (*model.PostOut, error) {
 	var postO data.Post
+	var err error
 	postO.ID = primitive.NewObjectIDFromTimestamp(time.Now())
 	postO.Text = input.Text
 	postO.UserID = input.UserID
 	postO.CreationTime = time.Now()
-	postO.Image = storage.UploadFile(input.Image)
+	postO.Image, err = storage.UploadFile(input.Image)
+	if err != nil {
+		return &model.PostOut{}, err
+	}
 	postO.InitialReview = false
 	postO.Reports = nil
 	postO.Shares = nil
@@ -64,8 +69,8 @@ func (r *queryResolver) Post(ctx context.Context, userID int, normalMode bool) (
 }
 
 func (r *queryResolver) CreateUser(ctx context.Context) (int, error) {
-	counter++
-	return counter, nil
+	id, err := user.GetNextUser(ctx.Value(ip.IPCtxKey).(*ip.DeviceDetails).IP)
+	return id, err
 }
 
 func (r *queryResolver) ViewerPost(ctx context.Context, id string) (*model.PostOut, error) {
@@ -107,11 +112,3 @@ func (r *Resolver) Query() generated.QueryResolver { return &queryResolver{r} }
 
 type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
-
-// !!! WARNING !!!
-// The code below was going to be deleted when updating resolvers. It has been copied here so you have
-// one last chance to move it out of harms way if you want. There are two reasons this happens:
-//  - When renaming or deleting a resolver the old code will be put in here. You can safely delete
-//    it when you're done.
-//  - You have helper methods in this file. Move them out to keep these resolver files clean.
-var counter = 0

@@ -7,6 +7,7 @@ import (
 	"QuicPos/internal/mongodb"
 	"QuicPos/internal/storage"
 	"QuicPos/internal/tensorflow"
+	"QuicPos/internal/user"
 	"log"
 	"net/http"
 	"os"
@@ -44,6 +45,8 @@ func main() {
 
 	mongodb.InitDB()
 	defer mongodb.DisconnectDB()
+
+	user.CheckCounter()
 
 	srv := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{Resolvers: &graph.Resolver{}}))
 	router.Handle("/", playground.Handler("GraphQL playground", "/query"))
