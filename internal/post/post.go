@@ -8,7 +8,6 @@ import (
 	"QuicPos/internal/stats"
 	"QuicPos/internal/tensorflow"
 	"context"
-	"log"
 	"math/rand"
 	"sort"
 	"time"
@@ -128,8 +127,8 @@ func Save(post data.Post) (string, error) {
 func GetOne(userID int, ip string) (data.Post, error) {
 	reviewed := bson.D{{"$match", bson.M{"initialreview": true}}}
 	notBlocked := bson.D{{"$match", bson.M{"blocked": false}}}
-	notWatched := bson.D{{"$match", bson.M{"views": bson.M{"$ne": bson.M{"userid": userID}}}}}
-	sample := bson.D{{"$sample", bson.D{{"size", 20}}}}
+	notWatched := bson.D{{"$match", bson.M{"views": bson.M{"$not": bson.M{"$elemMatch": bson.M{"userid": userID}}}}}}
+	sample := bson.D{{"$sample", bson.D{{"size", 10}}}}
 
 	//sometimes get only posts with less than 10 views
 	lessViews := bson.D{{"$match", bson.M{"views.9": bson.M{"$exists": false}}}}
@@ -181,7 +180,10 @@ func GetOne(userID int, ip string) (data.Post, error) {
 			best = idx
 		}
 	}
-	log.Println("PREDICTION: ", len(showsLoaded), " posts, time", float64(time.Now().UnixNano()-start.UnixNano())/1000000000, "s")
+	err = stats.NewProcessing(float64(time.Now().UnixNano()-start.UnixNano()) / 1000000000)
+	if err != nil {
+		return data.Post{}, err
+	}
 	//log.Println("Result: ", result[0])
 
 	return *showsLoaded[best], nil

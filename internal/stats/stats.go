@@ -23,12 +23,14 @@ func checkDay() (primitive.ObjectID, error) {
 
 	if stat.ID == nullID {
 		newStat := data.Day{
-			ID:        primitive.NewObjectIDFromTimestamp(time.Now()),
-			Date:      today,
-			NewUsers:  0,
-			NewPosts:  0,
-			Views:     0,
-			WatchTime: 0,
+			ID:             primitive.NewObjectIDFromTimestamp(time.Now()),
+			Date:           today,
+			NewUsers:       0,
+			NewPosts:       0,
+			Views:          0,
+			WatchTime:      0,
+			ProcessingTime: 0,
+			Requests:       0,
 		}
 		result, insertErr := mongodb.StatsCol.InsertOne(mongodb.Ctx, newStat)
 		if insertErr != nil {
@@ -53,6 +55,25 @@ func NewUser() error {
 		bson.M{"_id": statID},
 		bson.D{
 			{"$set", bson.D{{"newusers", stat.NewUsers + 1}}},
+		},
+	)
+	return err
+}
+
+//NewProcessing adds time spend on recommending post by the net
+func NewProcessing(time float64) error {
+	statID, err := checkDay()
+
+	result := mongodb.StatsCol.FindOne(context.TODO(), bson.M{"_id": statID})
+	var stat data.Day
+	result.Decode(&stat)
+
+	_, err = mongodb.StatsCol.UpdateOne(
+		context.TODO(),
+		bson.M{"_id": statID},
+		bson.D{
+			{"$set", bson.D{{"processingtime", stat.ProcessingTime + time}}},
+			{"$set", bson.D{{"requests", stat.Requests + 1}}},
 		},
 	)
 	return err

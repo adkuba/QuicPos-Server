@@ -3,7 +3,6 @@ package tensorflow
 import (
 	"QuicPos/internal/data"
 	"QuicPos/internal/storage"
-	//"log"
 
 	tf "github.com/tensorflow/tensorflow/tensorflow/go"
 
@@ -61,7 +60,7 @@ func getPixels(data io.Reader) ([1][224][224][3]float32, error) {
 	for y := 0; y < height; y++ {
 		for x := 0; x < width; x++ {
 			r, g, b, _ := img.At(x, y).RGBA()
-			converted[0][y][x][0], converted[0][y][x][1], converted[0][y][x][2] = float32(r), float32(g), float32(b)
+			converted[0][y][x][0], converted[0][y][x][1], converted[0][y][x][2] = float32(int(r/257)), float32(int(g/257)), float32(int(b/257))
 		}
 	}
 	return converted, nil

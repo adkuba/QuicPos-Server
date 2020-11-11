@@ -7,12 +7,14 @@ import (
 
 //Day for stats
 type Day struct {
-	ID        primitive.ObjectID `bson:"_id" json:"id,omitempty"`
-	Date      time.Time
-	NewUsers  int
-	NewPosts  int
-	Views     int
-	WatchTime float64
+	ID             primitive.ObjectID `bson:"_id" json:"id,omitempty"`
+	Date           time.Time
+	NewUsers       int
+	NewPosts       int
+	Views          int
+	WatchTime      float64
+	ProcessingTime float64
+	Requests       int
 }
 
 //View details struct
