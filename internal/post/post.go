@@ -169,14 +169,21 @@ func GetOne(userID int, ip string) (data.Post, error) {
 		Long:   long,
 		Date:   time.Now(),
 	}
-	bestValue := float32(0)
+	bestValue := -1
 	best := -1
 	start := time.Now()
 	for idx, post := range showsLoaded {
-		result := tensorflow.Recommend(*post, requesting).([][]float32)
-		engagement := result[0][0] * result[0][1]
-		if engagement > bestValue {
-			bestValue = engagement
+		results := tensorflow.Recommend(*post, requesting).([][]float32)
+		categoryBest := float32(0)
+		categoryIndex := -1
+		for cat, result := range results[0] {
+			if categoryBest < result {
+				categoryBest = result
+				categoryIndex = cat
+			}
+		}
+		if categoryIndex > bestValue {
+			bestValue = categoryIndex
 			best = idx
 		}
 	}
