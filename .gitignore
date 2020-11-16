@@ -19,3 +19,6 @@ QuicPos-key.json
 GeoLite2-City.mmdb
 
 bin/
+
+private.key
+certificate.crt

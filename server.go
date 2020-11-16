@@ -18,6 +18,7 @@ import (
 	"github.com/rs/cors"
 )
 
+//443
 const defaultPort = "8080"
 
 //server
@@ -53,5 +54,5 @@ func main() {
 	router.Handle("/query", srv)
 
 	log.Printf("connect to http://localhost:%s/ for GraphQL playground", port)
-	log.Fatal(http.ListenAndServe(":"+port, router))
+	log.Fatal(http.ListenAndServeTLS(":"+port, "certificate.crt", "private.key", router))
 }

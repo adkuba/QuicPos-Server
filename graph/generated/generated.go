@@ -45,6 +45,7 @@ type DirectiveRoot struct {
 type ComplexityRoot struct {
 	Mutation struct {
 		CreatePost func(childComplexity int, input model.NewPost) int
+		Learning   func(childComplexity int, input model.Learning) int
 		Report     func(childComplexity int, input model.NewReportShare) int
 		Review     func(childComplexity int, input model.Review) int
 		Share      func(childComplexity int, input model.NewReportShare) int
@@ -83,6 +84,7 @@ type MutationResolver interface {
 	Share(ctx context.Context, input model.NewReportShare) (bool, error)
 	Report(ctx context.Context, input model.NewReportShare) (bool, error)
 	View(ctx context.Context, input model.NewView) (bool, error)
+	Learning(ctx context.Context, input model.Learning) (bool, error)
 }
 type QueryResolver interface {
 	Post(ctx context.Context, userID int, normalMode bool) (*model.PostOut, error)
@@ -117,6 +119,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.CreatePost(childComplexity, args["input"].(model.NewPost)), true
+
+	case "Mutation.learning":
+		if e.complexity.Mutation.Learning == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_learning_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.Learning(childComplexity, args["input"].(model.Learning)), true
 
 	case "Mutation.report":
 		if e.complexity.Mutation.Report == nil {
@@ -411,12 +425,18 @@ input Review {
   password: String!
 }
 
+input Learning {
+  recommender: Float!
+  detector: Float!
+}
+
 type Mutation {
   createPost(input: NewPost!): PostOut!
   review(input: Review!): Boolean!
   share(input: NewReportShare!): Boolean!
   report(input: NewReportShare!): Boolean!
   view(input: NewView!): Boolean!
+  learning(input: Learning!): Boolean!
 }`, BuiltIn: false},
 }
 var parsedSchema = gqlparser.MustLoadSchema(sources...)
@@ -432,6 +452,21 @@ func (ec *executionContext) field_Mutation_createPost_args(ctx context.Context, 
 	if tmp, ok := rawArgs["input"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
 		arg0, err = ec.unmarshalNNewPost2QuicPosᚋgraphᚋmodelᚐNewPost(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_learning_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 model.Learning
+	if tmp, ok := rawArgs["input"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
+		arg0, err = ec.unmarshalNLearning2QuicPosᚋgraphᚋmodelᚐLearning(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -810,6 +845,48 @@ func (ec *executionContext) _Mutation_view(ctx context.Context, field graphql.Co
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return ec.resolvers.Mutation().View(rctx, args["input"].(model.NewView))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_learning(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_learning_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().Learning(rctx, args["input"].(model.Learning))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2565,6 +2642,34 @@ func (ec *executionContext) ___Type_ofType(ctx context.Context, field graphql.Co
 
 // region    **************************** input.gotpl *****************************
 
+func (ec *executionContext) unmarshalInputLearning(ctx context.Context, obj interface{}) (model.Learning, error) {
+	var it model.Learning
+	var asMap = obj.(map[string]interface{})
+
+	for k, v := range asMap {
+		switch k {
+		case "recommender":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("recommender"))
+			it.Recommender, err = ec.unmarshalNFloat2float64(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "detector":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("detector"))
+			it.Detector, err = ec.unmarshalNFloat2float64(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputNewPost(ctx context.Context, obj interface{}) (model.NewPost, error) {
 	var it model.NewPost
 	var asMap = obj.(map[string]interface{})
@@ -2762,6 +2867,11 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			}
 		case "view":
 			out.Values[i] = ec._Mutation_view(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "learning":
+			out.Values[i] = ec._Mutation_learning(ctx, field)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
@@ -3254,6 +3364,11 @@ func (ec *executionContext) marshalNInt2int(ctx context.Context, sel ast.Selecti
 		}
 	}
 	return res
+}
+
+func (ec *executionContext) unmarshalNLearning2QuicPosᚋgraphᚋmodelᚐLearning(ctx context.Context, v interface{}) (model.Learning, error) {
+	res, err := ec.unmarshalInputLearning(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) unmarshalNNewPost2QuicPosᚋgraphᚋmodelᚐNewPost(ctx context.Context, v interface{}) (model.NewPost, error) {

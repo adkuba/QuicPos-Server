@@ -31,6 +31,8 @@ func checkDay() (primitive.ObjectID, error) {
 			WatchTime:      0,
 			ProcessingTime: 0,
 			Requests:       0,
+			Recommender:    0,
+			Detector:       0,
 		}
 		result, insertErr := mongodb.StatsCol.InsertOne(mongodb.Ctx, newStat)
 		if insertErr != nil {
@@ -55,6 +57,25 @@ func NewUser() error {
 		bson.M{"_id": statID},
 		bson.D{
 			{"$set", bson.D{{"newusers", stat.NewUsers + 1}}},
+		},
+	)
+	return err
+}
+
+//UpdateNets to mongo
+func UpdateNets(recommender float64, detector float64) error {
+	statID, err := checkDay()
+
+	result := mongodb.StatsCol.FindOne(context.TODO(), bson.M{"_id": statID})
+	var stat data.Day
+	result.Decode(&stat)
+
+	_, err = mongodb.StatsCol.UpdateOne(
+		context.TODO(),
+		bson.M{"_id": statID},
+		bson.D{
+			{"$set", bson.D{{"recommender", recommender}}},
+			{"$set", bson.D{{"detector", detector}}},
 		},
 	)
 	return err

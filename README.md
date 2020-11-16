@@ -235,3 +235,12 @@ mutation share {
   share(input: {userID: "kuba", postID: "5f79cc2f9ec125d75f2e36e4"})
 }
 ```
+
+
+---
+Update nets
+```graphql
+mutation learning {
+  learning(input: {recommender: 1, detector: 1})
+}
+```

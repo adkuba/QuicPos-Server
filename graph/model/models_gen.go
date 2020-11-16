@@ -2,6 +2,11 @@
 
 package model
 
+type Learning struct {
+	Recommender float64 `json:"recommender"`
+	Detector    float64 `json:"detector"`
+}
+
 type NewPost struct {
 	Text   string `json:"text"`
 	UserID int    `json:"userId"`

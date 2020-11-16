@@ -52,10 +52,16 @@ input Review {
   password: String!
 }
 
+input Learning {
+  recommender: Float!
+  detector: Float!
+}
+
 type Mutation {
   createPost(input: NewPost!): PostOut!
   review(input: Review!): Boolean!
   share(input: NewReportShare!): Boolean!
   report(input: NewReportShare!): Boolean!
   view(input: NewView!): Boolean!
+  learning(input: Learning!): Boolean!
 }

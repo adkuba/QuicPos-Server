@@ -15,6 +15,8 @@ type Day struct {
 	WatchTime      float64
 	ProcessingTime float64
 	Requests       int
+	Recommender    float64
+	Detector       float64
 }
 
 //View details struct

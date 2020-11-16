@@ -9,7 +9,9 @@ import (
 	"QuicPos/internal/data"
 	"QuicPos/internal/ip"
 	"QuicPos/internal/post"
+	"QuicPos/internal/stats"
 	"QuicPos/internal/storage"
+	"QuicPos/internal/tensorflow"
 	"QuicPos/internal/user"
 	"context"
 	"errors"
@@ -60,6 +62,15 @@ func (r *mutationResolver) View(ctx context.Context, input model.NewView) (bool,
 	//tu mam dokladne dane urzadzenia
 	status, err := post.AddView(input, ctx.Value(ip.IPCtxKey).(*ip.DeviceDetails).IP)
 	return status, err
+}
+
+func (r *mutationResolver) Learning(ctx context.Context, input model.Learning) (bool, error) {
+	err := stats.UpdateNets(input.Recommender, input.Detector)
+	if err != nil {
+		return false, err
+	}
+	tensorflow.InitModels()
+	return true, nil
 }
 
 func (r *queryResolver) Post(ctx context.Context, userID int, normalMode bool) (*model.PostOut, error) {
