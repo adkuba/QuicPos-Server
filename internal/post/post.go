@@ -25,6 +25,11 @@ func Share(newReport model.NewReportShare) (bool, error) {
 		return false, err
 	}
 	shares := post.Shares
+	for _, sh := range shares {
+		if sh == newReport.UserID {
+			return true, err
+		}
+	}
 	shares = append(shares, newReport.UserID)
 
 	objectID, _ := primitive.ObjectIDFromHex(newReport.PostID)
@@ -48,6 +53,11 @@ func Report(newReport model.NewReportShare) (bool, error) {
 		return false, err
 	}
 	reports := post.Reports
+	for _, rep := range reports {
+		if rep == newReport.UserID {
+			return true, err
+		}
+	}
 	reports = append(reports, newReport.UserID)
 
 	objectID, _ := primitive.ObjectIDFromHex(newReport.PostID)
@@ -107,6 +117,32 @@ func AddView(newView model.NewView, ip string) (bool, error) {
 	return true, nil
 }
 
+//NewOutsideView to stats
+func NewOutsideView(postid string) error {
+	view := &data.View{
+		Time: 0,
+	}
+	objectID, _ := primitive.ObjectIDFromHex(postid)
+
+	result := mongodb.PostsCol.FindOne(context.TODO(), bson.M{"_id": objectID})
+	var post data.Post
+	result.Decode(&post)
+
+	_, err := mongodb.PostsCol.UpdateOne(
+		context.TODO(),
+		bson.M{"_id": objectID},
+		bson.D{
+			{"$set", bson.D{{"outsideViews", post.OutsideViews + 1}}},
+		},
+	)
+	if err != nil {
+		return err
+	}
+
+	err = stats.NewView(*view)
+	return err
+}
+
 //Save saves post to database
 func Save(post data.Post) (string, error) {
 	result, insertErr := mongodb.PostsCol.InsertOne(mongodb.Ctx, post)
@@ -121,6 +157,24 @@ func Save(post data.Post) (string, error) {
 
 	newID := result.InsertedID.(primitive.ObjectID).String()
 	return newID, nil
+}
+
+//GetOneRandom post
+func GetOneRandom() (data.Post, error) {
+	sample := bson.D{{"$sample", bson.D{{"size", 1}}}}
+	cursor, err := mongodb.PostsCol.Aggregate(context.TODO(), mongo.Pipeline{sample})
+	if err != nil {
+		return data.Post{}, err
+	}
+	var showsLoaded []*data.Post
+	if err := cursor.All(context.TODO(), &showsLoaded); err != nil {
+		return data.Post{}, err
+	}
+	err = NewOutsideView(showsLoaded[0].ID.String()[10:34])
+	if err != nil {
+		return data.Post{}, err
+	}
+	return *showsLoaded[0], nil
 }
 
 //GetOne gets one random post
@@ -173,7 +227,11 @@ func GetOne(userID int, ip string) (data.Post, error) {
 	best := -1
 	start := time.Now()
 	for idx, post := range showsLoaded {
-		results := tensorflow.Recommend(*post, requesting).([][]float32)
+		inter, err := tensorflow.Recommend(*post, requesting)
+		if err != nil {
+			return data.Post{}, err
+		}
+		results := inter.([][]float32)
 		categoryBest := float32(0)
 		categoryIndex := -1
 		for cat, result := range results[0] {
@@ -208,6 +266,10 @@ func GetByID(id string) (data.Post, error) {
 	result := mongodb.PostsCol.FindOne(context.TODO(), bson.M{"_id": objectID})
 	var post data.Post
 	result.Decode(&post)
+	err = NewOutsideView(id)
+	if err != nil {
+		return data.Post{}, err
+	}
 	return post, nil
 }
 
@@ -228,7 +290,11 @@ func GetOneNew() (data.OutputReview, float32, error) {
 	}
 	if len(posts) > 0 {
 		//predict
-		spam := tensorflow.Spam(*posts[0]).([][]float32)
+		inter, err := tensorflow.Spam(*posts[0])
+		if err != nil {
+			return data.OutputReview{}, 0, err
+		}
+		spam := inter.([][]float32)
 		return data.OutputReview{*posts[0], len(posts)}, spam[0][0], nil
 	}
 	return data.OutputReview{data.Post{}, 0}, 0, nil
@@ -253,7 +319,11 @@ func GetOneReported() (data.OutputReview, float32, error) {
 
 	if len(posts) > 0 {
 		//predict
-		spam := tensorflow.Spam(*posts[0]).([][]float32)
+		inter, err := tensorflow.Spam(*posts[0])
+		if err != nil {
+			return data.OutputReview{}, 0, err
+		}
+		spam := inter.([][]float32)
 		return data.OutputReview{*posts[0], len(posts)}, spam[0][0], nil
 	}
 	return data.OutputReview{data.Post{}, 0}, 0, nil

@@ -7,7 +7,6 @@ import (
 	tf "github.com/tensorflow/tensorflow/tensorflow/go"
 
 	"bytes"
-	"fmt"
 	"image"
 	"image/jpeg"
 	"io"
@@ -28,22 +27,20 @@ var recommenderModel *tf.SavedModel
 var detectorModel *tf.SavedModel
 
 //InitModels for recommender and detector
-func InitModels() {
+func InitModels() error {
 
 	model, err := tf.LoadSavedModel("/home/kuba/Documents/gitfolders/QuicPos-Microservice/out/recommender", []string{"serve"}, nil)
 	if err != nil {
-		fmt.Printf("Error loading saved model: %s\n", err.Error())
-		return
+		return err
 	}
 	recommenderModel = model
 
 	model, err = tf.LoadSavedModel("/home/kuba/Documents/gitfolders/QuicPos-Microservice/out/detector", []string{"serve"}, nil)
 	if err != nil {
-		fmt.Printf("Error loading saved model: %s\n", err.Error())
-		return
+		return err
 	}
 	detectorModel = model
-
+	return nil
 	//defer model.Session.Close()
 }
 
@@ -150,7 +147,7 @@ func convertPost(post data.Post) netData {
 }
 
 //Spam detection
-func Spam(post data.Post) interface{} {
+func Spam(post data.Post) (interface{}, error) {
 
 	netPost := convertPost(post)
 
@@ -179,15 +176,14 @@ func Spam(post data.Post) interface{} {
 	)
 
 	if err != nil {
-		fmt.Printf("Error running the session with input, err: %s\n", err.Error())
-		return nil
+		return nil, err
 	}
 
-	return result[0].Value()
+	return result[0].Value(), nil
 }
 
 //Recommend post
-func Recommend(post data.Post, requesting data.Requesting) interface{} {
+func Recommend(post data.Post, requesting data.Requesting) (interface{}, error) {
 
 	netPost := convertPost(post)
 
@@ -242,10 +238,9 @@ func Recommend(post data.Post, requesting data.Requesting) interface{} {
 	)
 
 	if err != nil {
-		fmt.Printf("Error running the session with input, err: %s\n", err.Error())
-		return nil
+		return nil, err
 	}
 
-	return result[0].Value()
+	return result[0].Value(), nil
 
 }

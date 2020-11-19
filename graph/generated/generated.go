@@ -44,12 +44,12 @@ type DirectiveRoot struct {
 
 type ComplexityRoot struct {
 	Mutation struct {
-		CreatePost func(childComplexity int, input model.NewPost) int
-		Learning   func(childComplexity int, input model.Learning) int
+		CreatePost func(childComplexity int, input model.NewPost, password string) int
+		Learning   func(childComplexity int, input model.Learning, password string) int
 		Report     func(childComplexity int, input model.NewReportShare) int
 		Review     func(childComplexity int, input model.Review) int
-		Share      func(childComplexity int, input model.NewReportShare) int
-		View       func(childComplexity int, input model.NewView) int
+		Share      func(childComplexity int, input model.NewReportShare, password string) int
+		View       func(childComplexity int, input model.NewView, password string) int
 	}
 
 	PostOut struct {
@@ -71,24 +71,24 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
-		CreateUser func(childComplexity int) int
-		Post       func(childComplexity int, userID int, normalMode bool) int
+		CreateUser func(childComplexity int, password string) int
+		Post       func(childComplexity int, userID int, normalMode bool, password string) int
 		UnReviewed func(childComplexity int, password string, new bool) int
 		ViewerPost func(childComplexity int, id string) int
 	}
 }
 
 type MutationResolver interface {
-	CreatePost(ctx context.Context, input model.NewPost) (*model.PostOut, error)
+	CreatePost(ctx context.Context, input model.NewPost, password string) (*model.PostOut, error)
 	Review(ctx context.Context, input model.Review) (bool, error)
-	Share(ctx context.Context, input model.NewReportShare) (bool, error)
+	Share(ctx context.Context, input model.NewReportShare, password string) (bool, error)
 	Report(ctx context.Context, input model.NewReportShare) (bool, error)
-	View(ctx context.Context, input model.NewView) (bool, error)
-	Learning(ctx context.Context, input model.Learning) (bool, error)
+	View(ctx context.Context, input model.NewView, password string) (bool, error)
+	Learning(ctx context.Context, input model.Learning, password string) (bool, error)
 }
 type QueryResolver interface {
-	Post(ctx context.Context, userID int, normalMode bool) (*model.PostOut, error)
-	CreateUser(ctx context.Context) (int, error)
+	Post(ctx context.Context, userID int, normalMode bool, password string) (*model.PostOut, error)
+	CreateUser(ctx context.Context, password string) (int, error)
 	ViewerPost(ctx context.Context, id string) (*model.PostOut, error)
 	UnReviewed(ctx context.Context, password string, new bool) (*model.PostReview, error)
 }
@@ -118,7 +118,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.CreatePost(childComplexity, args["input"].(model.NewPost)), true
+		return e.complexity.Mutation.CreatePost(childComplexity, args["input"].(model.NewPost), args["password"].(string)), true
 
 	case "Mutation.learning":
 		if e.complexity.Mutation.Learning == nil {
@@ -130,7 +130,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.Learning(childComplexity, args["input"].(model.Learning)), true
+		return e.complexity.Mutation.Learning(childComplexity, args["input"].(model.Learning), args["password"].(string)), true
 
 	case "Mutation.report":
 		if e.complexity.Mutation.Report == nil {
@@ -166,7 +166,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.Share(childComplexity, args["input"].(model.NewReportShare)), true
+		return e.complexity.Mutation.Share(childComplexity, args["input"].(model.NewReportShare), args["password"].(string)), true
 
 	case "Mutation.view":
 		if e.complexity.Mutation.View == nil {
@@ -178,7 +178,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.View(childComplexity, args["input"].(model.NewView)), true
+		return e.complexity.Mutation.View(childComplexity, args["input"].(model.NewView), args["password"].(string)), true
 
 	case "PostOut.blocked":
 		if e.complexity.PostOut.Blocked == nil {
@@ -269,7 +269,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			break
 		}
 
-		return e.complexity.Query.CreateUser(childComplexity), true
+		args, err := ec.field_Query_createUser_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.CreateUser(childComplexity, args["password"].(string)), true
 
 	case "Query.post":
 		if e.complexity.Query.Post == nil {
@@ -281,7 +286,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Query.Post(childComplexity, args["userId"].(int), args["normalMode"].(bool)), true
+		return e.complexity.Query.Post(childComplexity, args["userId"].(int), args["normalMode"].(bool), args["password"].(string)), true
 
 	case "Query.unReviewed":
 		if e.complexity.Query.UnReviewed == nil {
@@ -376,8 +381,8 @@ var sources = []*ast.Source{
 # https://gqlgen.com/getting-started/
 
 type Query {
-  post(userId: Int!, normalMode: Boolean!): PostOut!
-  createUser: Int!
+  post(userId: Int!, normalMode: Boolean!, password: String!): PostOut!
+  createUser(password: String!): Int!
   viewerPost(id: String!): PostOut!
   unReviewed(password: String!, new: Boolean!): PostReview!
 }
@@ -431,12 +436,12 @@ input Learning {
 }
 
 type Mutation {
-  createPost(input: NewPost!): PostOut!
+  createPost(input: NewPost!, password: String!): PostOut!
   review(input: Review!): Boolean!
-  share(input: NewReportShare!): Boolean!
+  share(input: NewReportShare!, password: String!): Boolean!
   report(input: NewReportShare!): Boolean!
-  view(input: NewView!): Boolean!
-  learning(input: Learning!): Boolean!
+  view(input: NewView!, password: String!): Boolean!
+  learning(input: Learning!, password: String!): Boolean!
 }`, BuiltIn: false},
 }
 var parsedSchema = gqlparser.MustLoadSchema(sources...)
@@ -457,6 +462,15 @@ func (ec *executionContext) field_Mutation_createPost_args(ctx context.Context, 
 		}
 	}
 	args["input"] = arg0
+	var arg1 string
+	if tmp, ok := rawArgs["password"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("password"))
+		arg1, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["password"] = arg1
 	return args, nil
 }
 
@@ -472,6 +486,15 @@ func (ec *executionContext) field_Mutation_learning_args(ctx context.Context, ra
 		}
 	}
 	args["input"] = arg0
+	var arg1 string
+	if tmp, ok := rawArgs["password"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("password"))
+		arg1, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["password"] = arg1
 	return args, nil
 }
 
@@ -517,6 +540,15 @@ func (ec *executionContext) field_Mutation_share_args(ctx context.Context, rawAr
 		}
 	}
 	args["input"] = arg0
+	var arg1 string
+	if tmp, ok := rawArgs["password"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("password"))
+		arg1, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["password"] = arg1
 	return args, nil
 }
 
@@ -532,6 +564,15 @@ func (ec *executionContext) field_Mutation_view_args(ctx context.Context, rawArg
 		}
 	}
 	args["input"] = arg0
+	var arg1 string
+	if tmp, ok := rawArgs["password"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("password"))
+		arg1, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["password"] = arg1
 	return args, nil
 }
 
@@ -547,6 +588,21 @@ func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs
 		}
 	}
 	args["name"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_createUser_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["password"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("password"))
+		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["password"] = arg0
 	return args, nil
 }
 
@@ -571,6 +627,15 @@ func (ec *executionContext) field_Query_post_args(ctx context.Context, rawArgs m
 		}
 	}
 	args["normalMode"] = arg1
+	var arg2 string
+	if tmp, ok := rawArgs["password"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("password"))
+		arg2, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["password"] = arg2
 	return args, nil
 }
 
@@ -676,7 +741,7 @@ func (ec *executionContext) _Mutation_createPost(ctx context.Context, field grap
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().CreatePost(rctx, args["input"].(model.NewPost))
+		return ec.resolvers.Mutation().CreatePost(rctx, args["input"].(model.NewPost), args["password"].(string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -760,7 +825,7 @@ func (ec *executionContext) _Mutation_share(ctx context.Context, field graphql.C
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().Share(rctx, args["input"].(model.NewReportShare))
+		return ec.resolvers.Mutation().Share(rctx, args["input"].(model.NewReportShare), args["password"].(string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -844,7 +909,7 @@ func (ec *executionContext) _Mutation_view(ctx context.Context, field graphql.Co
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().View(rctx, args["input"].(model.NewView))
+		return ec.resolvers.Mutation().View(rctx, args["input"].(model.NewView), args["password"].(string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -886,7 +951,7 @@ func (ec *executionContext) _Mutation_learning(ctx context.Context, field graphq
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().Learning(rctx, args["input"].(model.Learning))
+		return ec.resolvers.Mutation().Learning(rctx, args["input"].(model.Learning), args["password"].(string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1348,7 +1413,7 @@ func (ec *executionContext) _Query_post(ctx context.Context, field graphql.Colle
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().Post(rctx, args["userId"].(int), args["normalMode"].(bool))
+		return ec.resolvers.Query().Post(rctx, args["userId"].(int), args["normalMode"].(bool), args["password"].(string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1381,9 +1446,16 @@ func (ec *executionContext) _Query_createUser(ctx context.Context, field graphql
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_createUser_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().CreateUser(rctx)
+		return ec.resolvers.Query().CreateUser(rctx, args["password"].(string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)

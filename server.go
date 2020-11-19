@@ -42,7 +42,10 @@ func main() {
 	}
 
 	storage.InitStorage()
-	tensorflow.InitModels()
+	err := tensorflow.InitModels()
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	mongodb.InitDB()
 	defer mongodb.DisconnectDB()
@@ -53,6 +56,6 @@ func main() {
 	router.Handle("/", playground.Handler("GraphQL playground", "/query"))
 	router.Handle("/query", srv)
 
-	log.Printf("connect to http://localhost:%s/ for GraphQL playground", port)
+	log.Printf("connect to https://localhost:%s/ for GraphQL playground", port)
 	log.Fatal(http.ListenAndServeTLS(":"+port, "certificate.crt", "private.key", router))
 }

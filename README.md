@@ -80,6 +80,7 @@ mutation create {
       userId: -1
       image: "base64-string"
     }
+    password: "kuba"
   ) {
     ID
     text
@@ -97,7 +98,7 @@ mutation create {
 Get post
 ```graphql
 query {
-  post(userId: -1, normalMode: true) {
+  post(userId: -1, normalMode: true, password: "kubad") {
     ID
     text
     userId
@@ -114,7 +115,7 @@ query {
 Get new UserID
 ```graphql
 query {
-  createUser
+  createUser(password: "frw")
 }
 ```
 
@@ -212,8 +213,17 @@ mutation review {
 New view
 ```graphql
 mutation view {
-  view(input: { postID: "5f79cc2f9ec125d75f2e36e4", userId: -1, time: 1.0, deviceDetails: 1 })
+  view(
+    input: {
+      postID: "5f79cc2f9ec125d75f2e36e4"
+      userId: -1
+      time: 1.0
+      deviceDetails: 1
+    }
+    password: "ddd"
+  )
 }
+
 
 ```
 
@@ -222,7 +232,7 @@ mutation view {
 New report
 ```graphql
 mutation review {
-  report(input: { userID: "kuba2", postID: "5f79cc2f9ec125d75f2e36e4" })
+  report(input: { userID: 1, postID: "5f79cc2f9ec125d75f2e36e4" })
 }
 
 ```
@@ -232,8 +242,12 @@ mutation review {
 New share
 ```graphql
 mutation share {
-  share(input: {userID: "kuba", postID: "5f79cc2f9ec125d75f2e36e4"})
+  share(
+    input: { userID: 1, postID: "5f79cc2f9ec125d75f2e36e4" }
+    password: "kub"
+  )
 }
+
 ```
 
 
@@ -241,6 +255,7 @@ mutation share {
 Update nets
 ```graphql
 mutation learning {
-  learning(input: {recommender: 1, detector: 1})
+  learning(input: { recommender: 1, detector: 1 }, password: "dd")
 }
+
 ```

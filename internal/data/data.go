@@ -5,6 +5,9 @@ import (
 	"time"
 )
 
+//Pass to access
+var Pass = "kuba"
+
 //Day for stats
 type Day struct {
 	ID             primitive.ObjectID `bson:"_id" json:"id,omitempty"`
@@ -50,6 +53,7 @@ type Post struct {
 	Image         string
 	InitialReview bool
 	Blocked       bool
+	OutsideViews  int
 }
 
 //OutputReview struct with number of posts left

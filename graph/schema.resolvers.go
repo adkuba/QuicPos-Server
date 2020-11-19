@@ -20,24 +20,28 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-func (r *mutationResolver) CreatePost(ctx context.Context, input model.NewPost) (*model.PostOut, error) {
-	var postO data.Post
-	var err error
-	postO.ID = primitive.NewObjectIDFromTimestamp(time.Now())
-	postO.Text = input.Text
-	postO.UserID = input.UserID
-	postO.CreationTime = time.Now()
-	postO.Image, err = storage.UploadFile(input.Image)
-	if err != nil {
-		return &model.PostOut{}, err
+func (r *mutationResolver) CreatePost(ctx context.Context, input model.NewPost, password string) (*model.PostOut, error) {
+	if password == data.Pass {
+		var postO data.Post
+		var err error
+		postO.ID = primitive.NewObjectIDFromTimestamp(time.Now())
+		postO.Text = input.Text
+		postO.UserID = input.UserID
+		postO.CreationTime = time.Now()
+		postO.Image, err = storage.UploadFile(input.Image)
+		if err != nil {
+			return &model.PostOut{}, err
+		}
+		postO.InitialReview = false
+		postO.Reports = nil
+		postO.Shares = nil
+		postO.Views = nil
+		postO.Blocked = false
+		postO.OutsideViews = 0
+		postID, err := post.Save(postO)
+		return &model.PostOut{ID: postID, Text: postO.Text, UserID: postO.UserID, Shares: len(postO.Shares), Views: len(postO.Views), CreationTime: postO.CreationTime.String(), InitialReview: postO.InitialReview, Image: postO.Image, Blocked: postO.Blocked}, err
 	}
-	postO.InitialReview = false
-	postO.Reports = nil
-	postO.Shares = nil
-	postO.Views = nil
-	postO.Blocked = false
-	postID, err := post.Save(postO)
-	return &model.PostOut{ID: postID, Text: postO.Text, UserID: postO.UserID, Shares: len(postO.Shares), Views: len(postO.Views), CreationTime: postO.CreationTime.String(), InitialReview: postO.InitialReview, Image: postO.Image, Blocked: postO.Blocked}, err
+	return &model.PostOut{}, errors.New("bad key")
 }
 
 func (r *mutationResolver) Review(ctx context.Context, input model.Review) (bool, error) {
@@ -45,12 +49,15 @@ func (r *mutationResolver) Review(ctx context.Context, input model.Review) (bool
 		result, err := post.ReviewAction(input.New, input.PostID, input.Delete)
 		return result, err
 	}
-	return false, errors.New("bad password")
+	return false, errors.New("bad key")
 }
 
-func (r *mutationResolver) Share(ctx context.Context, input model.NewReportShare) (bool, error) {
-	result, err := post.Share(input)
-	return result, err
+func (r *mutationResolver) Share(ctx context.Context, input model.NewReportShare, password string) (bool, error) {
+	if password == data.Pass {
+		result, err := post.Share(input)
+		return result, err
+	}
+	return false, errors.New("bad key")
 }
 
 func (r *mutationResolver) Report(ctx context.Context, input model.NewReportShare) (bool, error) {
@@ -58,35 +65,53 @@ func (r *mutationResolver) Report(ctx context.Context, input model.NewReportShar
 	return result, err
 }
 
-func (r *mutationResolver) View(ctx context.Context, input model.NewView) (bool, error) {
-	//tu mam dokladne dane urzadzenia
-	status, err := post.AddView(input, ctx.Value(ip.IPCtxKey).(*ip.DeviceDetails).IP)
-	return status, err
-}
-
-func (r *mutationResolver) Learning(ctx context.Context, input model.Learning) (bool, error) {
-	err := stats.UpdateNets(input.Recommender, input.Detector)
-	if err != nil {
-		return false, err
+func (r *mutationResolver) View(ctx context.Context, input model.NewView, password string) (bool, error) {
+	if password == data.Pass {
+		//tu mam dokladne dane urzadzenia
+		status, err := post.AddView(input, ctx.Value(ip.IPCtxKey).(*ip.DeviceDetails).IP)
+		return status, err
 	}
-	tensorflow.InitModels()
-	return true, nil
+	return false, errors.New("bad key")
 }
 
-func (r *queryResolver) Post(ctx context.Context, userID int, normalMode bool) (*model.PostOut, error) {
-	//userID and normalMode to be used
-	post, err := post.GetOne(userID, ctx.Value(ip.IPCtxKey).(*ip.DeviceDetails).IP)
-	return &model.PostOut{ID: post.ID.String(), Text: post.Text, UserID: post.UserID, Shares: len(post.Shares), Views: len(post.Views), InitialReview: post.InitialReview, Image: post.Image, CreationTime: post.CreationTime.String(), Blocked: post.Blocked}, err
+func (r *mutationResolver) Learning(ctx context.Context, input model.Learning, password string) (bool, error) {
+	if password == data.Pass {
+		err := stats.UpdateNets(input.Recommender, input.Detector)
+		if err != nil {
+			return false, err
+		}
+		err = tensorflow.InitModels()
+		if err != nil {
+			return false, err
+		}
+		return true, nil
+	}
+	return false, errors.New("bad key")
 }
 
-func (r *queryResolver) CreateUser(ctx context.Context) (int, error) {
-	id, err := user.GetNextUser(ctx.Value(ip.IPCtxKey).(*ip.DeviceDetails).IP)
-	return id, err
+func (r *queryResolver) Post(ctx context.Context, userID int, normalMode bool, password string) (*model.PostOut, error) {
+	if password == data.Pass {
+		if normalMode {
+			post, err := post.GetOne(userID, ctx.Value(ip.IPCtxKey).(*ip.DeviceDetails).IP)
+			return &model.PostOut{ID: post.ID.String(), Text: post.Text, UserID: post.UserID, Shares: len(post.Shares), Views: len(post.Views) + post.OutsideViews, InitialReview: post.InitialReview, Image: post.Image, CreationTime: post.CreationTime.String(), Blocked: post.Blocked}, err
+		}
+		post, err := post.GetOneRandom()
+		return &model.PostOut{ID: post.ID.String(), Text: post.Text, UserID: post.UserID, Shares: len(post.Shares), Views: len(post.Views) + post.OutsideViews, InitialReview: post.InitialReview, Image: post.Image, CreationTime: post.CreationTime.String(), Blocked: post.Blocked}, err
+	}
+	return &model.PostOut{}, errors.New("bad key")
+}
+
+func (r *queryResolver) CreateUser(ctx context.Context, password string) (int, error) {
+	if password == data.Pass {
+		id, err := user.GetNextUser(ctx.Value(ip.IPCtxKey).(*ip.DeviceDetails).IP)
+		return id, err
+	}
+	return 0, errors.New("bad key")
 }
 
 func (r *queryResolver) ViewerPost(ctx context.Context, id string) (*model.PostOut, error) {
 	post, err := post.GetByID(id)
-	return &model.PostOut{ID: post.ID.String(), Text: post.Text, UserID: post.UserID, Shares: len(post.Shares), Views: len(post.Views), InitialReview: post.InitialReview, Image: post.Image, CreationTime: post.CreationTime.String(), Blocked: post.Blocked}, err
+	return &model.PostOut{ID: post.ID.String(), Text: post.Text, UserID: post.UserID, Shares: len(post.Shares), Views: len(post.Views) + post.OutsideViews, InitialReview: post.InitialReview, Image: post.Image, CreationTime: post.CreationTime.String(), Blocked: post.Blocked}, err
 }
 
 func (r *queryResolver) UnReviewed(ctx context.Context, password string, new bool) (*model.PostReview, error) {
@@ -123,3 +148,10 @@ func (r *Resolver) Query() generated.QueryResolver { return &queryResolver{r} }
 
 type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
+
+// !!! WARNING !!!
+// The code below was going to be deleted when updating resolvers. It has been copied here so you have
+// one last chance to move it out of harms way if you want. There are two reasons this happens:
+//  - When renaming or deleting a resolver the old code will be put in here. You can safely delete
+//    it when you're done.
+//  - You have helper methods in this file. Move them out to keep these resolver files clean.

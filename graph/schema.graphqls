@@ -3,8 +3,8 @@
 # https://gqlgen.com/getting-started/
 
 type Query {
-  post(userId: Int!, normalMode: Boolean!): PostOut!
-  createUser: Int!
+  post(userId: Int!, normalMode: Boolean!, password: String!): PostOut!
+  createUser(password: String!): Int!
   viewerPost(id: String!): PostOut!
   unReviewed(password: String!, new: Boolean!): PostReview!
 }
@@ -58,10 +58,10 @@ input Learning {
 }
 
 type Mutation {
-  createPost(input: NewPost!): PostOut!
+  createPost(input: NewPost!, password: String!): PostOut!
   review(input: Review!): Boolean!
-  share(input: NewReportShare!): Boolean!
+  share(input: NewReportShare!, password: String!): Boolean!
   report(input: NewReportShare!): Boolean!
-  view(input: NewView!): Boolean!
-  learning(input: Learning!): Boolean!
+  view(input: NewView!, password: String!): Boolean!
+  learning(input: Learning!, password: String!): Boolean!
 }
