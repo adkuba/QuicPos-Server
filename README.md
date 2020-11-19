@@ -45,7 +45,33 @@ Delete CreateTodos and Todos from schema.resolvers.go.
 ## Mongodb
 In internal/mongodb is file with all mongo database scripts. <br>
 If mongo can't find DNS edit <code>/etc/resolv.conf</code> and change nameserver to 8.8.8.8 <br>
-Important handling of ObjectID - see post.go. I don't know if it is good but works well.
+Important handling of ObjectID - see post.go. I don't know if it is good but works well. <br>
+Localization stats:
+```
+[{
+    $match: {
+        "views": {
+            "$ne": null
+        }
+    }
+}, {
+    $project: {
+        "views.localization": 1,
+        "_id": 0
+    }
+}, {
+    $unwind: {
+        path: "$views"
+    }
+}, {
+    $group: {
+        _id: "$views.localization",
+        count: {
+            $sum: 1
+        }
+    }
+}]
+```
 
 ## Deploy
 You don't have to create docker image. Just build golang project, send to virtual machine and run. Then execute:
@@ -257,5 +283,9 @@ Update nets
 mutation learning {
   learning(input: { recommender: 1, detector: 1 }, password: "dd")
 }
+<<<<<<< HEAD
 
 ```
+=======
+```
+>>>>>>> 7a0fb7753364914f7f2618cbf62e9131bd3e1faf
