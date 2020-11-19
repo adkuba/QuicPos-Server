@@ -283,9 +283,5 @@ Update nets
 mutation learning {
   learning(input: { recommender: 1, detector: 1 }, password: "dd")
 }
-<<<<<<< HEAD
 
 ```
-=======
-```
->>>>>>> 7a0fb7753364914f7f2618cbf62e9131bd3e1faf
