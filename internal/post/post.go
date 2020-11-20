@@ -120,7 +120,9 @@ func AddView(newView model.NewView, ip string) (bool, error) {
 //NewOutsideView to stats
 func NewOutsideView(postid string) error {
 	view := &data.View{
-		Time: 0,
+		Time:         0,
+		Localization: "Private",
+		Date:         time.Now(),
 	}
 	objectID, _ := primitive.ObjectIDFromHex(postid)
 
@@ -128,11 +130,14 @@ func NewOutsideView(postid string) error {
 	var post data.Post
 	result.Decode(&post)
 
+	var outside = post.OutsideViews
+	outside = append(outside, view)
+
 	_, err := mongodb.PostsCol.UpdateOne(
 		context.TODO(),
 		bson.M{"_id": objectID},
 		bson.D{
-			{"$set", bson.D{{"outsideViews", post.OutsideViews + 1}}},
+			{"$set", bson.D{{"outsideViews", outside}}},
 		},
 	)
 	if err != nil {

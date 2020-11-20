@@ -285,3 +285,21 @@ mutation learning {
 }
 
 ```
+
+
+
+---
+Get stats
+```graphql
+query stats {
+  getStats(id: "5fa53fa53c01bd8b20cd13f9"){
+    text
+    userid
+    views{
+      localization
+      date
+    }
+  }
+}
+
+```

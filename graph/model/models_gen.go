@@ -49,3 +49,14 @@ type Review struct {
 	Delete   bool   `json:"delete"`
 	Password string `json:"password"`
 }
+
+type Stats struct {
+	Userid int     `json:"userid"`
+	Text   string  `json:"text"`
+	Views  []*View `json:"views"`
+}
+
+type View struct {
+	Localization string `json:"localization"`
+	Date         string `json:"date"`
+}

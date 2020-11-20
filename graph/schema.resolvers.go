@@ -37,7 +37,7 @@ func (r *mutationResolver) CreatePost(ctx context.Context, input model.NewPost, 
 		postO.Shares = nil
 		postO.Views = nil
 		postO.Blocked = false
-		postO.OutsideViews = 0
+		postO.OutsideViews = nil
 		postID, err := post.Save(postO)
 		return &model.PostOut{ID: postID, Text: postO.Text, UserID: postO.UserID, Shares: len(postO.Shares), Views: len(postO.Views), CreationTime: postO.CreationTime.String(), InitialReview: postO.InitialReview, Image: postO.Image, Blocked: postO.Blocked}, err
 	}
@@ -93,10 +93,10 @@ func (r *queryResolver) Post(ctx context.Context, userID int, normalMode bool, p
 	if password == data.Pass {
 		if normalMode {
 			post, err := post.GetOne(userID, ctx.Value(ip.IPCtxKey).(*ip.DeviceDetails).IP)
-			return &model.PostOut{ID: post.ID.String(), Text: post.Text, UserID: post.UserID, Shares: len(post.Shares), Views: len(post.Views) + post.OutsideViews, InitialReview: post.InitialReview, Image: post.Image, CreationTime: post.CreationTime.String(), Blocked: post.Blocked}, err
+			return &model.PostOut{ID: post.ID.String(), Text: post.Text, UserID: post.UserID, Shares: len(post.Shares), Views: len(post.Views) + len(post.OutsideViews), InitialReview: post.InitialReview, Image: post.Image, CreationTime: post.CreationTime.String(), Blocked: post.Blocked}, err
 		}
 		post, err := post.GetOneRandom()
-		return &model.PostOut{ID: post.ID.String(), Text: post.Text, UserID: post.UserID, Shares: len(post.Shares), Views: len(post.Views) + post.OutsideViews, InitialReview: post.InitialReview, Image: post.Image, CreationTime: post.CreationTime.String(), Blocked: post.Blocked}, err
+		return &model.PostOut{ID: post.ID.String(), Text: post.Text, UserID: post.UserID, Shares: len(post.Shares), Views: len(post.Views) + len(post.OutsideViews), InitialReview: post.InitialReview, Image: post.Image, CreationTime: post.CreationTime.String(), Blocked: post.Blocked}, err
 	}
 	return &model.PostOut{}, errors.New("bad key")
 }
@@ -111,7 +111,7 @@ func (r *queryResolver) CreateUser(ctx context.Context, password string) (int, e
 
 func (r *queryResolver) ViewerPost(ctx context.Context, id string) (*model.PostOut, error) {
 	post, err := post.GetByID(id)
-	return &model.PostOut{ID: post.ID.String(), Text: post.Text, UserID: post.UserID, Shares: len(post.Shares), Views: len(post.Views) + post.OutsideViews, InitialReview: post.InitialReview, Image: post.Image, CreationTime: post.CreationTime.String(), Blocked: post.Blocked}, err
+	return &model.PostOut{ID: post.ID.String(), Text: post.Text, UserID: post.UserID, Shares: len(post.Shares), Views: len(post.Views) + len(post.OutsideViews), InitialReview: post.InitialReview, Image: post.Image, CreationTime: post.CreationTime.String(), Blocked: post.Blocked}, err
 }
 
 func (r *queryResolver) UnReviewed(ctx context.Context, password string, new bool) (*model.PostReview, error) {
@@ -140,6 +140,24 @@ func (r *queryResolver) UnReviewed(ctx context.Context, password string, new boo
 	return &model.PostReview{Post: &model.PostOut{}, Left: 0}, errors.New("bad password")
 }
 
+func (r *queryResolver) GetStats(ctx context.Context, id string) (*model.Stats, error) {
+	post, err := post.GetByID(id)
+	if err != nil {
+		return &model.Stats{}, err
+	}
+
+	var views []*model.View
+	for _, view := range append(post.Views, post.OutsideViews...) {
+		view := &model.View{
+			Localization: view.Localization,
+			Date:         view.Date.String(),
+		}
+		views = append(views, view)
+	}
+
+	return &model.Stats{Text: post.Text, Userid: post.UserID, Views: views}, nil
+}
+
 // Mutation returns generated.MutationResolver implementation.
 func (r *Resolver) Mutation() generated.MutationResolver { return &mutationResolver{r} }
 
@@ -148,10 +166,3 @@ func (r *Resolver) Query() generated.QueryResolver { return &queryResolver{r} }
 
 type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
-
-// !!! WARNING !!!
-// The code below was going to be deleted when updating resolvers. It has been copied here so you have
-// one last chance to move it out of harms way if you want. There are two reasons this happens:
-//  - When renaming or deleting a resolver the old code will be put in here. You can safely delete
-//    it when you're done.
-//  - You have helper methods in this file. Move them out to keep these resolver files clean.

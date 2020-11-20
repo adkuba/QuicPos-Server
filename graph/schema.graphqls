@@ -7,6 +7,18 @@ type Query {
   createUser(password: String!): Int!
   viewerPost(id: String!): PostOut!
   unReviewed(password: String!, new: Boolean!): PostReview!
+  getStats(id: String!): Stats!
+}
+
+type Stats {
+  userid: Int!
+  text: String!
+  views: [View!]
+}
+
+type View {
+  localization: String!
+  date: String!
 }
 
 type PostOut {

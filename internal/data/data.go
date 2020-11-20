@@ -53,7 +53,7 @@ type Post struct {
 	Image         string
 	InitialReview bool
 	Blocked       bool
-	OutsideViews  int
+	OutsideViews  []*View
 }
 
 //OutputReview struct with number of posts left
