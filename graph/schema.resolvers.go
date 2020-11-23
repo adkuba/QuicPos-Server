@@ -110,7 +110,7 @@ func (r *queryResolver) CreateUser(ctx context.Context, password string) (int, e
 }
 
 func (r *queryResolver) ViewerPost(ctx context.Context, id string) (*model.PostOut, error) {
-	post, err := post.GetByID(id)
+	post, err := post.GetByID(id, true)
 	return &model.PostOut{ID: post.ID.String(), Text: post.Text, UserID: post.UserID, Shares: len(post.Shares), Views: len(post.Views) + len(post.OutsideViews), InitialReview: post.InitialReview, Image: post.Image, CreationTime: post.CreationTime.String(), Blocked: post.Blocked}, err
 }
 
@@ -141,7 +141,7 @@ func (r *queryResolver) UnReviewed(ctx context.Context, password string, new boo
 }
 
 func (r *queryResolver) GetStats(ctx context.Context, id string) (*model.Stats, error) {
-	post, err := post.GetByID(id)
+	post, err := post.GetByID(id, false)
 	if err != nil {
 		return &model.Stats{}, err
 	}

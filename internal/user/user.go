@@ -10,7 +10,7 @@ var counter = 0
 
 //CheckCounter on server start
 func CheckCounter() {
-	initPost, err := post.GetByID("5fa55095fd6ff21ede156479")
+	initPost, err := post.GetByID("5fa55095fd6ff21ede156479", false)
 	if err != nil {
 		panic("Cant find init post!")
 	}

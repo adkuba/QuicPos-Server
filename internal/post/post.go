@@ -20,7 +20,7 @@ import (
 
 //Share post
 func Share(newReport model.NewReportShare) (bool, error) {
-	post, err := GetByID(newReport.PostID)
+	post, err := GetByID(newReport.PostID, false)
 	if err != nil {
 		return false, err
 	}
@@ -48,7 +48,7 @@ func Share(newReport model.NewReportShare) (bool, error) {
 
 //Report post
 func Report(newReport model.NewReportShare) (bool, error) {
-	post, err := GetByID(newReport.PostID)
+	post, err := GetByID(newReport.PostID, false)
 	if err != nil {
 		return false, err
 	}
@@ -76,7 +76,7 @@ func Report(newReport model.NewReportShare) (bool, error) {
 
 //AddView to post
 func AddView(newView model.NewView, ip string) (bool, error) {
-	post, err := GetByID(newView.PostID)
+	post, err := GetByID(newView.PostID, false)
 	if err != nil {
 		return false, err
 	}
@@ -261,8 +261,7 @@ func GetOne(userID int, ip string) (data.Post, error) {
 }
 
 //GetByID gets post by id
-func GetByID(id string) (data.Post, error) {
-
+func GetByID(id string, countView bool) (data.Post, error) {
 	objectID, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		return data.Post{}, err
@@ -271,9 +270,11 @@ func GetByID(id string) (data.Post, error) {
 	result := mongodb.PostsCol.FindOne(context.TODO(), bson.M{"_id": objectID})
 	var post data.Post
 	result.Decode(&post)
-	err = NewOutsideView(id)
-	if err != nil {
-		return data.Post{}, err
+	if countView {
+		err = NewOutsideView(id)
+		if err != nil {
+			return data.Post{}, err
+		}
 	}
 	return post, nil
 }
