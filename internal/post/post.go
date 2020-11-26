@@ -18,6 +18,27 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
+//AddMoney to post
+func AddMoney(payment model.Payment) (bool, error) {
+	post, err := GetByID(payment.Postid, false)
+	if err != nil {
+		return false, err
+	}
+
+	objectID, _ := primitive.ObjectIDFromHex(payment.Postid)
+	_, err = mongodb.PostsCol.UpdateOne(
+		context.TODO(),
+		bson.M{"_id": objectID},
+		bson.D{
+			{"$set", bson.D{{"money", post.Money + int(payment.Amount*100)}}},
+		},
+	)
+	if err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
 //Share post
 func Share(newReport model.NewReportShare) (bool, error) {
 	post, err := GetByID(newReport.PostID, false)
@@ -137,7 +158,7 @@ func NewOutsideView(postid string) error {
 		context.TODO(),
 		bson.M{"_id": objectID},
 		bson.D{
-			{"$set", bson.D{{"outsideViews", outside}}},
+			{"$set", bson.D{{"outsideviews", outside}}},
 		},
 	)
 	if err != nil {

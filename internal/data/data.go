@@ -54,6 +54,7 @@ type Post struct {
 	InitialReview bool
 	Blocked       bool
 	OutsideViews  []*View
+	Money         int
 }
 
 //OutputReview struct with number of posts left

@@ -11,6 +11,7 @@ import (
 	"QuicPos/internal/post"
 	"QuicPos/internal/stats"
 	"QuicPos/internal/storage"
+	"QuicPos/internal/stripe"
 	"QuicPos/internal/tensorflow"
 	"QuicPos/internal/user"
 	"context"
@@ -38,8 +39,9 @@ func (r *mutationResolver) CreatePost(ctx context.Context, input model.NewPost, 
 		postO.Views = nil
 		postO.Blocked = false
 		postO.OutsideViews = nil
+		postO.Money = 0
 		postID, err := post.Save(postO)
-		return &model.PostOut{ID: postID, Text: postO.Text, UserID: postO.UserID, Shares: len(postO.Shares), Views: len(postO.Views), CreationTime: postO.CreationTime.String(), InitialReview: postO.InitialReview, Image: postO.Image, Blocked: postO.Blocked}, err
+		return &model.PostOut{ID: postID, Text: postO.Text, UserID: postO.UserID, Shares: len(postO.Shares), Views: len(postO.Views), CreationTime: postO.CreationTime.String(), InitialReview: postO.InitialReview, Image: postO.Image, Blocked: postO.Blocked, Money: postO.Money}, err
 	}
 	return &model.PostOut{}, errors.New("bad key")
 }
@@ -89,14 +91,19 @@ func (r *mutationResolver) Learning(ctx context.Context, input model.Learning, p
 	return false, errors.New("bad key")
 }
 
+func (r *mutationResolver) Payment(ctx context.Context, input model.Payment) (bool, error) {
+	result, err := post.AddMoney(input)
+	return result, err
+}
+
 func (r *queryResolver) Post(ctx context.Context, userID int, normalMode bool, password string) (*model.PostOut, error) {
 	if password == data.Pass {
 		if normalMode {
 			post, err := post.GetOne(userID, ctx.Value(ip.IPCtxKey).(*ip.DeviceDetails).IP)
-			return &model.PostOut{ID: post.ID.String(), Text: post.Text, UserID: post.UserID, Shares: len(post.Shares), Views: len(post.Views) + len(post.OutsideViews), InitialReview: post.InitialReview, Image: post.Image, CreationTime: post.CreationTime.String(), Blocked: post.Blocked}, err
+			return &model.PostOut{ID: post.ID.String(), Text: post.Text, UserID: post.UserID, Shares: len(post.Shares), Views: len(post.Views) + len(post.OutsideViews), InitialReview: post.InitialReview, Image: post.Image, CreationTime: post.CreationTime.String(), Blocked: post.Blocked, Money: post.Money}, err
 		}
 		post, err := post.GetOneRandom()
-		return &model.PostOut{ID: post.ID.String(), Text: post.Text, UserID: post.UserID, Shares: len(post.Shares), Views: len(post.Views) + len(post.OutsideViews), InitialReview: post.InitialReview, Image: post.Image, CreationTime: post.CreationTime.String(), Blocked: post.Blocked}, err
+		return &model.PostOut{ID: post.ID.String(), Text: post.Text, UserID: post.UserID, Shares: len(post.Shares), Views: len(post.Views) + len(post.OutsideViews), InitialReview: post.InitialReview, Image: post.Image, CreationTime: post.CreationTime.String(), Blocked: post.Blocked, Money: post.Money}, err
 	}
 	return &model.PostOut{}, errors.New("bad key")
 }
@@ -111,7 +118,7 @@ func (r *queryResolver) CreateUser(ctx context.Context, password string) (int, e
 
 func (r *queryResolver) ViewerPost(ctx context.Context, id string) (*model.PostOut, error) {
 	post, err := post.GetByID(id, true)
-	return &model.PostOut{ID: post.ID.String(), Text: post.Text, UserID: post.UserID, Shares: len(post.Shares), Views: len(post.Views) + len(post.OutsideViews), InitialReview: post.InitialReview, Image: post.Image, CreationTime: post.CreationTime.String(), Blocked: post.Blocked}, err
+	return &model.PostOut{ID: post.ID.String(), Text: post.Text, UserID: post.UserID, Shares: len(post.Shares), Views: len(post.Views) + len(post.OutsideViews), InitialReview: post.InitialReview, Image: post.Image, CreationTime: post.CreationTime.String(), Blocked: post.Blocked, Money: post.Money}, err
 }
 
 func (r *queryResolver) UnReviewed(ctx context.Context, password string, new bool) (*model.PostReview, error) {
@@ -134,6 +141,7 @@ func (r *queryResolver) UnReviewed(ctx context.Context, password string, new boo
 			Image:         postReview.Post.Image,
 			CreationTime:  postReview.Post.CreationTime.String(),
 			Blocked:       postReview.Post.Blocked,
+			Money:         postReview.Post.Money,
 		}
 		return &model.PostReview{Post: &post, Left: postReview.Left, Spam: float64(spam)}, err
 	}
@@ -155,7 +163,12 @@ func (r *queryResolver) GetStats(ctx context.Context, id string) (*model.Stats, 
 		views = append(views, view)
 	}
 
-	return &model.Stats{Text: post.Text, Userid: post.UserID, Views: views}, nil
+	return &model.Stats{Text: post.Text, Userid: post.UserID, Views: views, Money: float64(post.Money) / 100}, nil
+}
+
+func (r *queryResolver) GetStripeClient(ctx context.Context, amount float64) (string, error) {
+	client, err := stripe.CreatePaymentIntent(amount)
+	return client, err
 }
 
 // Mutation returns generated.MutationResolver implementation.

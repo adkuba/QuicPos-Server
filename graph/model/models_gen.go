@@ -25,6 +25,11 @@ type NewView struct {
 	DeviceDetails int     `json:"deviceDetails"`
 }
 
+type Payment struct {
+	Amount float64 `json:"amount"`
+	Postid string  `json:"postid"`
+}
+
 type PostOut struct {
 	ID            string `json:"ID"`
 	Text          string `json:"text"`
@@ -35,6 +40,7 @@ type PostOut struct {
 	InitialReview bool   `json:"initialReview"`
 	Image         string `json:"image"`
 	Blocked       bool   `json:"blocked"`
+	Money         int    `json:"money"`
 }
 
 type PostReview struct {
@@ -54,6 +60,7 @@ type Stats struct {
 	Userid int     `json:"userid"`
 	Text   string  `json:"text"`
 	Views  []*View `json:"views"`
+	Money  float64 `json:"money"`
 }
 
 type View struct {

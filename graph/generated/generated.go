@@ -46,6 +46,7 @@ type ComplexityRoot struct {
 	Mutation struct {
 		CreatePost func(childComplexity int, input model.NewPost, password string) int
 		Learning   func(childComplexity int, input model.Learning, password string) int
+		Payment    func(childComplexity int, input model.Payment) int
 		Report     func(childComplexity int, input model.NewReportShare) int
 		Review     func(childComplexity int, input model.Review) int
 		Share      func(childComplexity int, input model.NewReportShare, password string) int
@@ -58,6 +59,7 @@ type ComplexityRoot struct {
 		ID            func(childComplexity int) int
 		Image         func(childComplexity int) int
 		InitialReview func(childComplexity int) int
+		Money         func(childComplexity int) int
 		Shares        func(childComplexity int) int
 		Text          func(childComplexity int) int
 		UserID        func(childComplexity int) int
@@ -71,14 +73,16 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
-		CreateUser func(childComplexity int, password string) int
-		GetStats   func(childComplexity int, id string) int
-		Post       func(childComplexity int, userID int, normalMode bool, password string) int
-		UnReviewed func(childComplexity int, password string, new bool) int
-		ViewerPost func(childComplexity int, id string) int
+		CreateUser      func(childComplexity int, password string) int
+		GetStats        func(childComplexity int, id string) int
+		GetStripeClient func(childComplexity int, amount float64) int
+		Post            func(childComplexity int, userID int, normalMode bool, password string) int
+		UnReviewed      func(childComplexity int, password string, new bool) int
+		ViewerPost      func(childComplexity int, id string) int
 	}
 
 	Stats struct {
+		Money  func(childComplexity int) int
 		Text   func(childComplexity int) int
 		Userid func(childComplexity int) int
 		Views  func(childComplexity int) int
@@ -97,6 +101,7 @@ type MutationResolver interface {
 	Report(ctx context.Context, input model.NewReportShare) (bool, error)
 	View(ctx context.Context, input model.NewView, password string) (bool, error)
 	Learning(ctx context.Context, input model.Learning, password string) (bool, error)
+	Payment(ctx context.Context, input model.Payment) (bool, error)
 }
 type QueryResolver interface {
 	Post(ctx context.Context, userID int, normalMode bool, password string) (*model.PostOut, error)
@@ -104,6 +109,7 @@ type QueryResolver interface {
 	ViewerPost(ctx context.Context, id string) (*model.PostOut, error)
 	UnReviewed(ctx context.Context, password string, new bool) (*model.PostReview, error)
 	GetStats(ctx context.Context, id string) (*model.Stats, error)
+	GetStripeClient(ctx context.Context, amount float64) (string, error)
 }
 
 type executableSchema struct {
@@ -144,6 +150,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.Learning(childComplexity, args["input"].(model.Learning), args["password"].(string)), true
+
+	case "Mutation.payment":
+		if e.complexity.Mutation.Payment == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_payment_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.Payment(childComplexity, args["input"].(model.Payment)), true
 
 	case "Mutation.report":
 		if e.complexity.Mutation.Report == nil {
@@ -228,6 +246,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.PostOut.InitialReview(childComplexity), true
 
+	case "PostOut.money":
+		if e.complexity.PostOut.Money == nil {
+			break
+		}
+
+		return e.complexity.PostOut.Money(childComplexity), true
+
 	case "PostOut.shares":
 		if e.complexity.PostOut.Shares == nil {
 			break
@@ -301,6 +326,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Query.GetStats(childComplexity, args["id"].(string)), true
 
+	case "Query.getStripeClient":
+		if e.complexity.Query.GetStripeClient == nil {
+			break
+		}
+
+		args, err := ec.field_Query_getStripeClient_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.GetStripeClient(childComplexity, args["amount"].(float64)), true
+
 	case "Query.post":
 		if e.complexity.Query.Post == nil {
 			break
@@ -336,6 +373,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Query.ViewerPost(childComplexity, args["id"].(string)), true
+
+	case "Stats.money":
+		if e.complexity.Stats.Money == nil {
+			break
+		}
+
+		return e.complexity.Stats.Money(childComplexity), true
 
 	case "Stats.text":
 		if e.complexity.Stats.Text == nil {
@@ -446,12 +490,14 @@ type Query {
   viewerPost(id: String!): PostOut!
   unReviewed(password: String!, new: Boolean!): PostReview!
   getStats(id: String!): Stats!
+  getStripeClient(amount: Float!): String!
 }
 
 type Stats {
   userid: Int!
   text: String!
   views: [View!]
+  money: Float!
 }
 
 type View {
@@ -469,6 +515,7 @@ type PostOut {
   initialReview: Boolean!
   image: String! #storage id
   blocked: Boolean!
+  money: Int!
 }
 
 type PostReview {
@@ -507,6 +554,11 @@ input Learning {
   detector: Float!
 }
 
+input Payment {
+  amount: Float!
+  postid: String!
+}
+
 type Mutation {
   createPost(input: NewPost!, password: String!): PostOut!
   review(input: Review!): Boolean!
@@ -514,6 +566,7 @@ type Mutation {
   report(input: NewReportShare!): Boolean!
   view(input: NewView!, password: String!): Boolean!
   learning(input: Learning!, password: String!): Boolean!
+  payment(input: Payment!): Boolean!
 }`, BuiltIn: false},
 }
 var parsedSchema = gqlparser.MustLoadSchema(sources...)
@@ -567,6 +620,21 @@ func (ec *executionContext) field_Mutation_learning_args(ctx context.Context, ra
 		}
 	}
 	args["password"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_payment_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 model.Payment
+	if tmp, ok := rawArgs["input"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
+		arg0, err = ec.unmarshalNPayment2QuicPosᚋgraphᚋmodelᚐPayment(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["input"] = arg0
 	return args, nil
 }
 
@@ -690,6 +758,21 @@ func (ec *executionContext) field_Query_getStats_args(ctx context.Context, rawAr
 		}
 	}
 	args["id"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_getStripeClient_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 float64
+	if tmp, ok := rawArgs["amount"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("amount"))
+		arg0, err = ec.unmarshalNFloat2float64(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["amount"] = arg0
 	return args, nil
 }
 
@@ -1055,6 +1138,48 @@ func (ec *executionContext) _Mutation_learning(ctx context.Context, field graphq
 	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Mutation_payment(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_payment_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().Payment(rctx, args["input"].(model.Payment))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _PostOut_ID(ctx context.Context, field graphql.CollectedField, obj *model.PostOut) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -1368,6 +1493,41 @@ func (ec *executionContext) _PostOut_blocked(ctx context.Context, field graphql.
 	res := resTmp.(bool)
 	fc.Result = res
 	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _PostOut_money(ctx context.Context, field graphql.CollectedField, obj *model.PostOut) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "PostOut",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Money, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int)
+	fc.Result = res
+	return ec.marshalNInt2int(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _PostReview_post(ctx context.Context, field graphql.CollectedField, obj *model.PostReview) (ret graphql.Marshaler) {
@@ -1685,6 +1845,48 @@ func (ec *executionContext) _Query_getStats(ctx context.Context, field graphql.C
 	return ec.marshalNStats2ᚖQuicPosᚋgraphᚋmodelᚐStats(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Query_getStripeClient(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_getStripeClient_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().GetStripeClient(rctx, args["amount"].(float64))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Query___type(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -1856,6 +2058,41 @@ func (ec *executionContext) _Stats_views(ctx context.Context, field graphql.Coll
 	res := resTmp.([]*model.View)
 	fc.Result = res
 	return ec.marshalOView2ᚕᚖQuicPosᚋgraphᚋmodelᚐViewᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Stats_money(ctx context.Context, field graphql.CollectedField, obj *model.Stats) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Stats",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Money, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(float64)
+	fc.Result = res
+	return ec.marshalNFloat2float64(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _View_localization(ctx context.Context, field graphql.CollectedField, obj *model.View) (ret graphql.Marshaler) {
@@ -3151,6 +3388,34 @@ func (ec *executionContext) unmarshalInputNewView(ctx context.Context, obj inter
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputPayment(ctx context.Context, obj interface{}) (model.Payment, error) {
+	var it model.Payment
+	var asMap = obj.(map[string]interface{})
+
+	for k, v := range asMap {
+		switch k {
+		case "amount":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("amount"))
+			it.Amount, err = ec.unmarshalNFloat2float64(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "postid":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("postid"))
+			it.Postid, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputReview(ctx context.Context, obj interface{}) (model.Review, error) {
 	var it model.Review
 	var asMap = obj.(map[string]interface{})
@@ -3248,6 +3513,11 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
+		case "payment":
+			out.Values[i] = ec._Mutation_payment(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -3312,6 +3582,11 @@ func (ec *executionContext) _PostOut(ctx context.Context, sel ast.SelectionSet, 
 			}
 		case "blocked":
 			out.Values[i] = ec._PostOut_blocked(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "money":
+			out.Values[i] = ec._PostOut_money(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
@@ -3448,6 +3723,20 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 				}
 				return res
 			})
+		case "getStripeClient":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_getStripeClient(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "__type":
 			out.Values[i] = ec._Query___type(ctx, field)
 		case "__schema":
@@ -3486,6 +3775,11 @@ func (ec *executionContext) _Stats(ctx context.Context, sel ast.SelectionSet, ob
 			}
 		case "views":
 			out.Values[i] = ec._Stats_views(ctx, field, obj)
+		case "money":
+			out.Values[i] = ec._Stats_money(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -3836,6 +4130,11 @@ func (ec *executionContext) unmarshalNNewReportShare2QuicPosᚋgraphᚋmodelᚐN
 
 func (ec *executionContext) unmarshalNNewView2QuicPosᚋgraphᚋmodelᚐNewView(ctx context.Context, v interface{}) (model.NewView, error) {
 	res, err := ec.unmarshalInputNewView(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalNPayment2QuicPosᚋgraphᚋmodelᚐPayment(ctx context.Context, v interface{}) (model.Payment, error) {
+	res, err := ec.unmarshalInputPayment(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 

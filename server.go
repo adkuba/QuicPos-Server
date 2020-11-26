@@ -6,6 +6,7 @@ import (
 	"QuicPos/internal/ip"
 	"QuicPos/internal/mongodb"
 	"QuicPos/internal/storage"
+	"QuicPos/internal/stripe"
 	"QuicPos/internal/tensorflow"
 	"QuicPos/internal/user"
 	"log"
@@ -51,11 +52,13 @@ func main() {
 	defer mongodb.DisconnectDB()
 
 	user.CheckCounter()
+	stripe.Init()
 
 	srv := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{Resolvers: &graph.Resolver{}}))
 	router.Handle("/", playground.Handler("GraphQL playground", "/query"))
 	router.Handle("/query", srv)
 
 	log.Printf("connect to https://localhost:%s/ for GraphQL playground", port)
-	log.Fatal(http.ListenAndServeTLS(":"+port, "certificate.crt", "private.key", router))
+	//log.Fatal(http.ListenAndServeTLS(":"+port, "certificate.crt", "private.key", router))
+	log.Fatal(http.ListenAndServe(":"+port, router))
 }
