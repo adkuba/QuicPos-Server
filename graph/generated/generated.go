@@ -76,7 +76,7 @@ type ComplexityRoot struct {
 		CreateUser      func(childComplexity int, password string) int
 		GetStats        func(childComplexity int, id string) int
 		GetStripeClient func(childComplexity int, amount float64) int
-		Post            func(childComplexity int, userID int, normalMode bool, password string) int
+		Post            func(childComplexity int, userID int, normalMode bool, password string, ad bool) int
 		UnReviewed      func(childComplexity int, password string, new bool) int
 		ViewerPost      func(childComplexity int, id string) int
 	}
@@ -104,7 +104,7 @@ type MutationResolver interface {
 	Payment(ctx context.Context, input model.Payment) (bool, error)
 }
 type QueryResolver interface {
-	Post(ctx context.Context, userID int, normalMode bool, password string) (*model.PostOut, error)
+	Post(ctx context.Context, userID int, normalMode bool, password string, ad bool) (*model.PostOut, error)
 	CreateUser(ctx context.Context, password string) (int, error)
 	ViewerPost(ctx context.Context, id string) (*model.PostOut, error)
 	UnReviewed(ctx context.Context, password string, new bool) (*model.PostReview, error)
@@ -348,7 +348,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Query.Post(childComplexity, args["userId"].(int), args["normalMode"].(bool), args["password"].(string)), true
+		return e.complexity.Query.Post(childComplexity, args["userId"].(int), args["normalMode"].(bool), args["password"].(string), args["ad"].(bool)), true
 
 	case "Query.unReviewed":
 		if e.complexity.Query.UnReviewed == nil {
@@ -485,7 +485,7 @@ var sources = []*ast.Source{
 # https://gqlgen.com/getting-started/
 
 type Query {
-  post(userId: Int!, normalMode: Boolean!, password: String!): PostOut!
+  post(userId: Int!, normalMode: Boolean!, password: String!, ad: Boolean!): PostOut!
   createUser(password: String!): Int!
   viewerPost(id: String!): PostOut!
   unReviewed(password: String!, new: Boolean!): PostReview!
@@ -806,6 +806,15 @@ func (ec *executionContext) field_Query_post_args(ctx context.Context, rawArgs m
 		}
 	}
 	args["password"] = arg2
+	var arg3 bool
+	if tmp, ok := rawArgs["ad"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("ad"))
+		arg3, err = ec.unmarshalNBoolean2bool(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["ad"] = arg3
 	return args, nil
 }
 
@@ -1660,7 +1669,7 @@ func (ec *executionContext) _Query_post(ctx context.Context, field graphql.Colle
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().Post(rctx, args["userId"].(int), args["normalMode"].(bool), args["password"].(string))
+		return ec.resolvers.Query().Post(rctx, args["userId"].(int), args["normalMode"].(bool), args["password"].(string), args["ad"].(bool))
 	})
 	if err != nil {
 		ec.Error(ctx, err)

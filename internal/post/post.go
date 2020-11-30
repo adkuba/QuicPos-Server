@@ -204,32 +204,32 @@ func GetOneRandom() (data.Post, error) {
 }
 
 //GetOne gets one random post
-func GetOne(userID int, ip string) (data.Post, error) {
+func GetOne(userID int, ip string, ad bool) (data.Post, error) {
 	reviewed := bson.D{{"$match", bson.M{"initialreview": true}}}
 	notBlocked := bson.D{{"$match", bson.M{"blocked": false}}}
 	notWatched := bson.D{{"$match", bson.M{"views": bson.M{"$not": bson.M{"$elemMatch": bson.M{"userid": userID}}}}}}
 	sample := bson.D{{"$sample", bson.D{{"size", 10}}}}
+	lessViews := bson.D{{"$match", bson.M{"views.9": bson.M{"$exists": false}}}}
+	ads := bson.D{{"$match", bson.M{"money": bson.M{"$gt": 0}}}}
+
+	//normal
+	pipeline := mongo.Pipeline{reviewed, notBlocked, notWatched, sample}
 
 	//sometimes get only posts with less than 10 views
-	lessViews := bson.D{{"$match", bson.M{"views.9": bson.M{"$exists": false}}}}
-
 	//<0, 49> 1 to 50 chance of hapenning
 	number := rand.Intn(50)
-	var showLoadedCursor *mongo.Cursor
 	if number == 20 {
-		//only less than 10 views posts choosing
-		cursor, err := mongodb.PostsCol.Aggregate(context.TODO(), mongo.Pipeline{reviewed, notBlocked, notWatched, lessViews, sample})
-		if err != nil {
-			return data.Post{}, err
-		}
-		showLoadedCursor = cursor
-	} else {
-		//normal post choosing
-		cursor, err := mongodb.PostsCol.Aggregate(context.TODO(), mongo.Pipeline{reviewed, notBlocked, notWatched, sample})
-		if err != nil {
-			return data.Post{}, err
-		}
-		showLoadedCursor = cursor
+		pipeline = mongo.Pipeline{reviewed, notBlocked, notWatched, lessViews, sample}
+	}
+
+	//ad choosing
+	if ad {
+		pipeline = mongo.Pipeline{reviewed, notBlocked, ads, sample}
+	}
+
+	showLoadedCursor, err := mongodb.PostsCol.Aggregate(context.TODO(), pipeline)
+	if err != nil {
+		return data.Post{}, err
 	}
 
 	//convert
@@ -275,10 +275,29 @@ func GetOne(userID int, ip string) (data.Post, error) {
 	if err != nil {
 		return data.Post{}, err
 	}
-	//log.Println("Result: ", result[0])
+
+	//ad calculation
+	if ad {
+		err = reduceMoney(showsLoaded[best].ID, showsLoaded[best].Money)
+		if err != nil {
+			return data.Post{}, err
+		}
+	}
 
 	return *showsLoaded[best], nil
 
+}
+
+//reduce ad view money
+func reduceMoney(id primitive.ObjectID, money int) error {
+	_, err := mongodb.PostsCol.UpdateOne(
+		context.TODO(),
+		bson.M{"_id": id},
+		bson.D{
+			{"$set", bson.D{{"money", money - 1}}},
+		},
+	)
+	return err
 }
 
 //GetByID gets post by id

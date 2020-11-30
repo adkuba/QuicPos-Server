@@ -3,7 +3,7 @@
 # https://gqlgen.com/getting-started/
 
 type Query {
-  post(userId: Int!, normalMode: Boolean!, password: String!): PostOut!
+  post(userId: Int!, normalMode: Boolean!, password: String!, ad: Boolean!): PostOut!
   createUser(password: String!): Int!
   viewerPost(id: String!): PostOut!
   unReviewed(password: String!, new: Boolean!): PostReview!

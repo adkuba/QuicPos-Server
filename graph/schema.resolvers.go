@@ -96,10 +96,10 @@ func (r *mutationResolver) Payment(ctx context.Context, input model.Payment) (bo
 	return result, err
 }
 
-func (r *queryResolver) Post(ctx context.Context, userID int, normalMode bool, password string) (*model.PostOut, error) {
+func (r *queryResolver) Post(ctx context.Context, userID int, normalMode bool, password string, ad bool) (*model.PostOut, error) {
 	if password == data.Pass {
-		if normalMode {
-			post, err := post.GetOne(userID, ctx.Value(ip.IPCtxKey).(*ip.DeviceDetails).IP)
+		if normalMode || ad {
+			post, err := post.GetOne(userID, ctx.Value(ip.IPCtxKey).(*ip.DeviceDetails).IP, ad)
 			return &model.PostOut{ID: post.ID.String(), Text: post.Text, UserID: post.UserID, Shares: len(post.Shares), Views: len(post.Views) + len(post.OutsideViews), InitialReview: post.InitialReview, Image: post.Image, CreationTime: post.CreationTime.String(), Blocked: post.Blocked, Money: post.Money}, err
 		}
 		post, err := post.GetOneRandom()
