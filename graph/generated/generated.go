@@ -534,7 +534,7 @@ input NewView {
   postID: String!
   userId: Int!
   time: Float!
-  deviceDetails: Int!
+  deviceDetails: String!
 }
 
 input NewReportShare {
@@ -3387,7 +3387,7 @@ func (ec *executionContext) unmarshalInputNewView(ctx context.Context, obj inter
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("deviceDetails"))
-			it.DeviceDetails, err = ec.unmarshalNInt2int(ctx, v)
+			it.DeviceDetails, err = ec.unmarshalNString2string(ctx, v)
 			if err != nil {
 				return it, err
 			}

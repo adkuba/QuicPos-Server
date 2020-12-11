@@ -22,7 +22,7 @@ type NewView struct {
 	PostID        string  `json:"postID"`
 	UserID        int     `json:"userId"`
 	Time          float64 `json:"time"`
-	DeviceDetails int     `json:"deviceDetails"`
+	DeviceDetails string  `json:"deviceDetails"`
 }
 
 type Payment struct {

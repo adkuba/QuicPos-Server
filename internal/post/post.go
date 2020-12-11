@@ -3,6 +3,7 @@ package post
 import (
 	"QuicPos/graph/model"
 	"QuicPos/internal/data"
+	"QuicPos/internal/devices"
 	"QuicPos/internal/geoloc"
 	"QuicPos/internal/mongodb"
 	"QuicPos/internal/stats"
@@ -106,13 +107,17 @@ func AddView(newView model.NewView, ip string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
+	deviceID, err := devices.GetDevice(newView.DeviceDetails)
+	if err != nil {
+		return false, err
+	}
 	view := &data.View{
 		UserID:       newView.UserID,
 		Time:         newView.Time,
 		Localization: loc,
 		Lati:         lati,
 		Long:         long,
-		Device:       newView.DeviceDetails,
+		Device:       deviceID,
 		Date:         time.Now(),
 	}
 	views = append(views, view)

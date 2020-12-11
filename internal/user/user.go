@@ -32,7 +32,7 @@ func GetNextUser(ip string) (int, error) {
 		PostID:        "5fa55095fd6ff21ede156479",
 		UserID:        counter,
 		Time:          0,
-		DeviceDetails: 0,
+		DeviceDetails: "",
 	}
 	_, err := post.AddView(newView, ip)
 	if err != nil {

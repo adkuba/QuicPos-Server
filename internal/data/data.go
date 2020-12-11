@@ -33,6 +33,13 @@ type View struct {
 	Date         time.Time
 }
 
+//ViewModel struct for database
+type ViewModel struct {
+	ID     primitive.ObjectID `bson:"_id" json:"id,omitempty"`
+	Name   string
+	Number int
+}
+
 //Requesting user struct
 type Requesting struct {
 	UserID int

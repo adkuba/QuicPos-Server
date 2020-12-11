@@ -3,6 +3,7 @@ package main
 import (
 	"QuicPos/graph"
 	"QuicPos/graph/generated"
+	"QuicPos/internal/devices"
 	"QuicPos/internal/ip"
 	"QuicPos/internal/mongodb"
 	"QuicPos/internal/storage"
@@ -53,6 +54,7 @@ func main() {
 
 	user.CheckCounter()
 	stripe.Init()
+	devices.Init()
 
 	srv := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{Resolvers: &graph.Resolver{}}))
 	router.Handle("/", playground.Handler("GraphQL playground", "/query"))

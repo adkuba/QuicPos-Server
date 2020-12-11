@@ -23,6 +23,9 @@ var PostsCol *mongo.Collection
 //StatsCol collection
 var StatsCol *mongo.Collection
 
+//DevicesCol collection
+var DevicesCol *mongo.Collection
+
 //InitDB starts connection with database
 func InitDB() {
 	client, err := mongo.NewClient(options.Client().ApplyURI("mongodb+srv://admin:funia@quicpos.felpr.gcp.mongodb.net/quicpos?retryWrites=true&w=majority"))
@@ -39,9 +42,11 @@ func InitDB() {
 
 	posts := client.Database("quicpos").Collection("posts")
 	stats := client.Database("quicpos").Collection("stats")
+	devices := client.Database("quicpos").Collection("devices")
 
 	PostsCol = posts
 	StatsCol = stats
+	DevicesCol = devices
 	Client = client
 	Ctx = ctx
 }
