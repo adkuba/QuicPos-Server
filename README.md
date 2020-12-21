@@ -73,6 +73,15 @@ Localization stats:
 }]
 ```
 
+Ciekawe query usuwające wszystkie linki w tekście posta.
+```sh
+db.posts.find({text: {$regex: "https:[^ ]+"}}).forEach(function(e, i){ 
+    const regex = /https:[^ ]+/gi; 
+    e.text = e.text.replace(regex, ''); 
+    db.posts.save(e); 
+})
+```
+
 ## Deploy
 You don't have to create docker image. Just build golang project, send to virtual machine and run. Then execute:
 ```sh
