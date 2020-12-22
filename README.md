@@ -312,7 +312,7 @@ query stats {
 }
 
 ```
-<<<<<<< HEAD
+
 
 
 ---
@@ -322,5 +322,3 @@ query {
   storageIntegrity(password: "")
 }
 ```
-=======
->>>>>>> d52f1f04278203f0af1ece74a9b6a7b694852d43
