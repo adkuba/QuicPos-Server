@@ -7,6 +7,7 @@ type Query {
   createUser(password: String!): Int!
   viewerPost(id: String!): PostOut!
   unReviewed(password: String!, new: Boolean!): PostReview!
+  storageIntegrity(password: String!): String!
   getStats(id: String!): Stats!
   getStripeClient(amount: Float!): String!
 }

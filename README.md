@@ -303,3 +303,12 @@ query stats {
 }
 
 ```
+
+
+---
+Check google storage images integrity
+```graphql
+query {
+  storageIntegrity(password: "")
+}
+```

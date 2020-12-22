@@ -16,6 +16,7 @@ import (
 	"QuicPos/internal/user"
 	"context"
 	"errors"
+	"strconv"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -146,6 +147,17 @@ func (r *queryResolver) UnReviewed(ctx context.Context, password string, new boo
 		return &model.PostReview{Post: &post, Left: postReview.Left, Spam: float64(spam)}, err
 	}
 	return &model.PostReview{Post: &model.PostOut{}, Left: 0}, errors.New("bad password")
+}
+
+func (r *queryResolver) StorageIntegrity(ctx context.Context, password string) (string, error) {
+	if password == data.Pass {
+		deleted, err := storage.RemoveParentless()
+		if err != nil {
+			return "Error!", err
+		}
+		return strconv.Itoa(deleted) + " images deleted", nil
+	}
+	return "Bad password!", nil
 }
 
 func (r *queryResolver) GetStats(ctx context.Context, id string) (*model.Stats, error) {

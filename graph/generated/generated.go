@@ -73,12 +73,13 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
-		CreateUser      func(childComplexity int, password string) int
-		GetStats        func(childComplexity int, id string) int
-		GetStripeClient func(childComplexity int, amount float64) int
-		Post            func(childComplexity int, userID int, normalMode bool, password string, ad bool) int
-		UnReviewed      func(childComplexity int, password string, new bool) int
-		ViewerPost      func(childComplexity int, id string) int
+		CreateUser       func(childComplexity int, password string) int
+		GetStats         func(childComplexity int, id string) int
+		GetStripeClient  func(childComplexity int, amount float64) int
+		Post             func(childComplexity int, userID int, normalMode bool, password string, ad bool) int
+		StorageIntegrity func(childComplexity int, password string) int
+		UnReviewed       func(childComplexity int, password string, new bool) int
+		ViewerPost       func(childComplexity int, id string) int
 	}
 
 	Stats struct {
@@ -108,6 +109,7 @@ type QueryResolver interface {
 	CreateUser(ctx context.Context, password string) (int, error)
 	ViewerPost(ctx context.Context, id string) (*model.PostOut, error)
 	UnReviewed(ctx context.Context, password string, new bool) (*model.PostReview, error)
+	StorageIntegrity(ctx context.Context, password string) (string, error)
 	GetStats(ctx context.Context, id string) (*model.Stats, error)
 	GetStripeClient(ctx context.Context, amount float64) (string, error)
 }
@@ -350,6 +352,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Query.Post(childComplexity, args["userId"].(int), args["normalMode"].(bool), args["password"].(string), args["ad"].(bool)), true
 
+	case "Query.storageIntegrity":
+		if e.complexity.Query.StorageIntegrity == nil {
+			break
+		}
+
+		args, err := ec.field_Query_storageIntegrity_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.StorageIntegrity(childComplexity, args["password"].(string)), true
+
 	case "Query.unReviewed":
 		if e.complexity.Query.UnReviewed == nil {
 			break
@@ -489,6 +503,7 @@ type Query {
   createUser(password: String!): Int!
   viewerPost(id: String!): PostOut!
   unReviewed(password: String!, new: Boolean!): PostReview!
+  storageIntegrity(password: String!): String!
   getStats(id: String!): Stats!
   getStripeClient(amount: Float!): String!
 }
@@ -815,6 +830,21 @@ func (ec *executionContext) field_Query_post_args(ctx context.Context, rawArgs m
 		}
 	}
 	args["ad"] = arg3
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_storageIntegrity_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["password"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("password"))
+		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["password"] = arg0
 	return args, nil
 }
 
@@ -1810,6 +1840,48 @@ func (ec *executionContext) _Query_unReviewed(ctx context.Context, field graphql
 	res := resTmp.(*model.PostReview)
 	fc.Result = res
 	return ec.marshalNPostReview2ᚖQuicPosᚋgraphᚋmodelᚐPostReview(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Query_storageIntegrity(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_storageIntegrity_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().StorageIntegrity(rctx, args["password"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_getStats(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -3713,6 +3785,20 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_unReviewed(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		case "storageIntegrity":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_storageIntegrity(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}
