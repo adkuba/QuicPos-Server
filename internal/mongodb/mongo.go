@@ -31,7 +31,7 @@ var DevicesCol *mongo.Collection
 
 //InitDB starts connection with database
 func InitDB() {
-	client, err := mongo.NewClient(options.Client().ApplyURI("mongodb+srv://admin:funia@quicpos.felpr.gcp.mongodb.net/quicpos?retryWrites=true&w=majority"))
+	client, err := mongo.NewClient(options.Client().ApplyURI(""))
 	if err != nil {
 		log.Fatal(err)
 	}

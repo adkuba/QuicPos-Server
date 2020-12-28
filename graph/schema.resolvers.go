@@ -48,7 +48,7 @@ func (r *mutationResolver) CreatePost(ctx context.Context, input model.NewPost, 
 }
 
 func (r *mutationResolver) Review(ctx context.Context, input model.Review) (bool, error) {
-	if input.Password == "funia" {
+	if input.Password == "" {
 		result, err := post.ReviewAction(input.New, input.PostID, input.Delete)
 		return result, err
 	}
@@ -123,7 +123,7 @@ func (r *queryResolver) ViewerPost(ctx context.Context, id string) (*model.PostO
 }
 
 func (r *queryResolver) UnReviewed(ctx context.Context, password string, new bool) (*model.PostReview, error) {
-	if password == "funia" {
+	if password == "" {
 		var postReview data.OutputReview
 		var spam float32
 		var err error

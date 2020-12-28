@@ -6,7 +6,7 @@ import (
 )
 
 //Pass to access
-var Pass = "kuba"
+var Pass = ""
 
 //Day for stats
 type Day struct {
