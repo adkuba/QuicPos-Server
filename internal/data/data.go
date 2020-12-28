@@ -40,6 +40,12 @@ type ViewModel struct {
 	Number int
 }
 
+//UserModel struct for database
+type UserModel struct {
+	ID       primitive.ObjectID `bson:"_id" json:"id,omitempty"`
+	LastUser int
+}
+
 //Requesting user struct
 type Requesting struct {
 	UserID int

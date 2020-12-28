@@ -23,6 +23,9 @@ var PostsCol *mongo.Collection
 //StatsCol collection
 var StatsCol *mongo.Collection
 
+//UsersCol collection
+var UsersCol *mongo.Collection
+
 //DevicesCol collection
 var DevicesCol *mongo.Collection
 
@@ -43,10 +46,12 @@ func InitDB() {
 	posts := client.Database("quicpos").Collection("posts")
 	stats := client.Database("quicpos").Collection("stats")
 	devices := client.Database("quicpos").Collection("devices")
+	users := client.Database("quicpos").Collection("users")
 
 	PostsCol = posts
 	StatsCol = stats
 	DevicesCol = devices
+	UsersCol = users
 	Client = client
 	Ctx = ctx
 }
