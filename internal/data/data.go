@@ -8,6 +8,9 @@ import (
 //Pass to access
 var Pass = ""
 
+//AdminPass to access
+var AdminPass = ""
+
 //Day for stats
 type Day struct {
 	ID             primitive.ObjectID `bson:"_id" json:"id,omitempty"`
@@ -24,7 +27,7 @@ type Day struct {
 
 //View details struct
 type View struct {
-	UserID       int
+	User         User
 	Time         float64 //relative to post content and shares JAKI WZOR?
 	Localization string
 	Lati         float64
@@ -48,20 +51,27 @@ type UserModel struct {
 
 //Requesting user struct
 type Requesting struct {
-	UserID int
-	Lat    float64
-	Long   float64
-	Date   time.Time
+	User User
+	Lat  float64
+	Long float64
+	Date time.Time
+}
+
+//User struct
+type User struct {
+	ID   primitive.ObjectID `bson:"_id" json:"id,omitempty"`
+	UUID string
+	Int  int
 }
 
 //Post struct
 type Post struct {
 	ID            primitive.ObjectID `bson:"_id" json:"id,omitempty"`
 	Text          string
-	UserID        int
-	Reports       []int
+	User          User
+	Reports       []*User
 	Views         []*View
-	Shares        []int
+	Shares        []*User
 	CreationTime  time.Time
 	Image         string
 	InitialReview bool

@@ -60,7 +60,7 @@ func RemoveParentless() (int, error) {
 	for idx, imageToDelete := range toDelete {
 		err = deleteFile(imageToDelete)
 		if err != nil {
-			return idx, err
+			log.Println(idx, err)
 		}
 	}
 

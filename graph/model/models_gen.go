@@ -9,18 +9,18 @@ type Learning struct {
 
 type NewPost struct {
 	Text   string `json:"text"`
-	UserID int    `json:"userId"`
+	UserID string `json:"userId"`
 	Image  string `json:"image"`
 }
 
 type NewReportShare struct {
-	UserID int    `json:"userID"`
+	UserID string `json:"userID"`
 	PostID string `json:"postID"`
 }
 
 type NewView struct {
 	PostID        string  `json:"postID"`
-	UserID        int     `json:"userId"`
+	UserID        string  `json:"userId"`
 	Time          float64 `json:"time"`
 	DeviceDetails string  `json:"deviceDetails"`
 }
@@ -33,7 +33,7 @@ type Payment struct {
 type PostOut struct {
 	ID            string `json:"ID"`
 	Text          string `json:"text"`
-	UserID        int    `json:"userId"`
+	UserID        string `json:"userId"`
 	Views         int    `json:"views"`
 	Shares        int    `json:"shares"`
 	CreationTime  string `json:"creationTime"`
@@ -49,6 +49,11 @@ type PostReview struct {
 	Spam float64  `json:"spam"`
 }
 
+type Remove struct {
+	PostID string `json:"postID"`
+	UserID string `json:"userID"`
+}
+
 type Review struct {
 	PostID   string `json:"postID"`
 	New      bool   `json:"new"`
@@ -57,7 +62,7 @@ type Review struct {
 }
 
 type Stats struct {
-	Userid int     `json:"userid"`
+	Userid string  `json:"userid"`
 	Text   string  `json:"text"`
 	Views  []*View `json:"views"`
 	Money  float64 `json:"money"`

@@ -47,6 +47,7 @@ type ComplexityRoot struct {
 		CreatePost func(childComplexity int, input model.NewPost, password string) int
 		Learning   func(childComplexity int, input model.Learning, password string) int
 		Payment    func(childComplexity int, input model.Payment) int
+		RemovePost func(childComplexity int, input model.Remove, password string) int
 		Report     func(childComplexity int, input model.NewReportShare) int
 		Review     func(childComplexity int, input model.Review) int
 		Share      func(childComplexity int, input model.NewReportShare, password string) int
@@ -76,7 +77,7 @@ type ComplexityRoot struct {
 		CreateUser       func(childComplexity int, password string) int
 		GetStats         func(childComplexity int, id string) int
 		GetStripeClient  func(childComplexity int, amount float64) int
-		Post             func(childComplexity int, userID int, normalMode bool, password string, ad bool) int
+		Post             func(childComplexity int, userID string, normalMode bool, password string, ad bool) int
 		StorageIntegrity func(childComplexity int, password string) int
 		UnReviewed       func(childComplexity int, password string, new bool) int
 		ViewerPost       func(childComplexity int, id string) int
@@ -103,10 +104,11 @@ type MutationResolver interface {
 	View(ctx context.Context, input model.NewView, password string) (bool, error)
 	Learning(ctx context.Context, input model.Learning, password string) (bool, error)
 	Payment(ctx context.Context, input model.Payment) (bool, error)
+	RemovePost(ctx context.Context, input model.Remove, password string) (bool, error)
 }
 type QueryResolver interface {
-	Post(ctx context.Context, userID int, normalMode bool, password string, ad bool) (*model.PostOut, error)
-	CreateUser(ctx context.Context, password string) (int, error)
+	Post(ctx context.Context, userID string, normalMode bool, password string, ad bool) (*model.PostOut, error)
+	CreateUser(ctx context.Context, password string) (string, error)
 	ViewerPost(ctx context.Context, id string) (*model.PostOut, error)
 	UnReviewed(ctx context.Context, password string, new bool) (*model.PostReview, error)
 	StorageIntegrity(ctx context.Context, password string) (string, error)
@@ -164,6 +166,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.Payment(childComplexity, args["input"].(model.Payment)), true
+
+	case "Mutation.removePost":
+		if e.complexity.Mutation.RemovePost == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_removePost_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.RemovePost(childComplexity, args["input"].(model.Remove), args["password"].(string)), true
 
 	case "Mutation.report":
 		if e.complexity.Mutation.Report == nil {
@@ -350,7 +364,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Query.Post(childComplexity, args["userId"].(int), args["normalMode"].(bool), args["password"].(string), args["ad"].(bool)), true
+		return e.complexity.Query.Post(childComplexity, args["userId"].(string), args["normalMode"].(bool), args["password"].(string), args["ad"].(bool)), true
 
 	case "Query.storageIntegrity":
 		if e.complexity.Query.StorageIntegrity == nil {
@@ -499,8 +513,8 @@ var sources = []*ast.Source{
 # https://gqlgen.com/getting-started/
 
 type Query {
-  post(userId: Int!, normalMode: Boolean!, password: String!, ad: Boolean!): PostOut!
-  createUser(password: String!): Int!
+  post(userId: String!, normalMode: Boolean!, password: String!, ad: Boolean!): PostOut!
+  createUser(password: String!): String!
   viewerPost(id: String!): PostOut!
   unReviewed(password: String!, new: Boolean!): PostReview!
   storageIntegrity(password: String!): String!
@@ -509,7 +523,7 @@ type Query {
 }
 
 type Stats {
-  userid: Int!
+  userid: String!
   text: String!
   views: [View!]
   money: Float!
@@ -523,7 +537,7 @@ type View {
 type PostOut {
   ID: String!
   text: String!
-  userId: Int!
+  userId: String!
   views: Int!
   shares: Int!
   creationTime: String!
@@ -541,19 +555,19 @@ type PostReview {
 
 input NewPost {
   text: String!
-  userId: Int!
+  userId: String!
   image: String! #base64 string
 }
 
 input NewView {
   postID: String!
-  userId: Int!
+  userId: String!
   time: Float!
   deviceDetails: String!
 }
 
 input NewReportShare {
-  userID: Int!
+  userID: String!
   postID: String!
 }
 
@@ -574,6 +588,11 @@ input Payment {
   postid: String!
 }
 
+input Remove {
+  postID: String!
+  userID: String!
+}
+
 type Mutation {
   createPost(input: NewPost!, password: String!): PostOut!
   review(input: Review!): Boolean!
@@ -582,6 +601,7 @@ type Mutation {
   view(input: NewView!, password: String!): Boolean!
   learning(input: Learning!, password: String!): Boolean!
   payment(input: Payment!): Boolean!
+  removePost(input: Remove!, password: String!): Boolean!
 }`, BuiltIn: false},
 }
 var parsedSchema = gqlparser.MustLoadSchema(sources...)
@@ -650,6 +670,30 @@ func (ec *executionContext) field_Mutation_payment_args(ctx context.Context, raw
 		}
 	}
 	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_removePost_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 model.Remove
+	if tmp, ok := rawArgs["input"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
+		arg0, err = ec.unmarshalNRemove2QuicPosᚋgraphᚋmodelᚐRemove(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["input"] = arg0
+	var arg1 string
+	if tmp, ok := rawArgs["password"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("password"))
+		arg1, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["password"] = arg1
 	return args, nil
 }
 
@@ -794,10 +838,10 @@ func (ec *executionContext) field_Query_getStripeClient_args(ctx context.Context
 func (ec *executionContext) field_Query_post_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 int
+	var arg0 string
 	if tmp, ok := rawArgs["userId"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("userId"))
-		arg0, err = ec.unmarshalNInt2int(ctx, tmp)
+		arg0, err = ec.unmarshalNString2string(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -1219,6 +1263,48 @@ func (ec *executionContext) _Mutation_payment(ctx context.Context, field graphql
 	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Mutation_removePost(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_removePost_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().RemovePost(rctx, args["input"].(model.Remove), args["password"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _PostOut_ID(ctx context.Context, field graphql.CollectedField, obj *model.PostOut) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -1319,9 +1405,9 @@ func (ec *executionContext) _PostOut_userId(ctx context.Context, field graphql.C
 		}
 		return graphql.Null
 	}
-	res := resTmp.(int)
+	res := resTmp.(string)
 	fc.Result = res
-	return ec.marshalNInt2int(ctx, field.Selections, res)
+	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _PostOut_views(ctx context.Context, field graphql.CollectedField, obj *model.PostOut) (ret graphql.Marshaler) {
@@ -1699,7 +1785,7 @@ func (ec *executionContext) _Query_post(ctx context.Context, field graphql.Colle
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().Post(rctx, args["userId"].(int), args["normalMode"].(bool), args["password"].(string), args["ad"].(bool))
+		return ec.resolvers.Query().Post(rctx, args["userId"].(string), args["normalMode"].(bool), args["password"].(string), args["ad"].(bool))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1753,9 +1839,9 @@ func (ec *executionContext) _Query_createUser(ctx context.Context, field graphql
 		}
 		return graphql.Null
 	}
-	res := resTmp.(int)
+	res := resTmp.(string)
 	fc.Result = res
-	return ec.marshalNInt2int(ctx, field.Selections, res)
+	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_viewerPost(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -2069,9 +2155,9 @@ func (ec *executionContext) _Stats_userid(ctx context.Context, field graphql.Col
 		}
 		return graphql.Null
 	}
-	res := resTmp.(int)
+	res := resTmp.(string)
 	fc.Result = res
-	return ec.marshalNInt2int(ctx, field.Selections, res)
+	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Stats_text(ctx context.Context, field graphql.CollectedField, obj *model.Stats) (ret graphql.Marshaler) {
@@ -3379,7 +3465,7 @@ func (ec *executionContext) unmarshalInputNewPost(ctx context.Context, obj inter
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("userId"))
-			it.UserID, err = ec.unmarshalNInt2int(ctx, v)
+			it.UserID, err = ec.unmarshalNString2string(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -3407,7 +3493,7 @@ func (ec *executionContext) unmarshalInputNewReportShare(ctx context.Context, ob
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("userID"))
-			it.UserID, err = ec.unmarshalNInt2int(ctx, v)
+			it.UserID, err = ec.unmarshalNString2string(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -3443,7 +3529,7 @@ func (ec *executionContext) unmarshalInputNewView(ctx context.Context, obj inter
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("userId"))
-			it.UserID, err = ec.unmarshalNInt2int(ctx, v)
+			it.UserID, err = ec.unmarshalNString2string(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -3488,6 +3574,34 @@ func (ec *executionContext) unmarshalInputPayment(ctx context.Context, obj inter
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("postid"))
 			it.Postid, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputRemove(ctx context.Context, obj interface{}) (model.Remove, error) {
+	var it model.Remove
+	var asMap = obj.(map[string]interface{})
+
+	for k, v := range asMap {
+		switch k {
+		case "postID":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("postID"))
+			it.PostID, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "userID":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("userID"))
+			it.UserID, err = ec.unmarshalNString2string(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -3596,6 +3710,11 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			}
 		case "payment":
 			out.Values[i] = ec._Mutation_payment(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "removePost":
+			out.Values[i] = ec._Mutation_removePost(ctx, field)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
@@ -4259,6 +4378,11 @@ func (ec *executionContext) marshalNPostReview2ᚖQuicPosᚋgraphᚋmodelᚐPost
 		return graphql.Null
 	}
 	return ec._PostReview(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNRemove2QuicPosᚋgraphᚋmodelᚐRemove(ctx context.Context, v interface{}) (model.Remove, error) {
+	res, err := ec.unmarshalInputRemove(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) unmarshalNReview2QuicPosᚋgraphᚋmodelᚐReview(ctx context.Context, v interface{}) (model.Review, error) {

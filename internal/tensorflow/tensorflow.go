@@ -29,13 +29,13 @@ var detectorModel *tf.SavedModel
 //InitModels for recommender and detector
 func InitModels() error {
 
-	model, err := tf.LoadSavedModel("/home/kuba/Documents/gitfolders/QuicPos-Microservice/out/recommender", []string{"serve"}, nil)
+	model, err := tf.LoadSavedModel("./out/recommender", []string{"serve"}, nil)
 	if err != nil {
 		return err
 	}
 	recommenderModel = model
 
-	model, err = tf.LoadSavedModel("/home/kuba/Documents/gitfolders/QuicPos-Microservice/out/detector", []string{"serve"}, nil)
+	model, err = tf.LoadSavedModel("./out/detector", []string{"serve"}, nil)
 	if err != nil {
 		return err
 	}
@@ -68,7 +68,7 @@ func removeView(s []*data.View, i int) []*data.View {
 	return s[:len(s)-1]
 }
 
-func remove(s []int, i int) []int {
+func remove(s []*data.User, i int) []*data.User {
 	s[i] = s[len(s)-1]
 	return s[:len(s)-1]
 }
@@ -87,13 +87,13 @@ func convertPost(post data.Post) netData {
 	}
 
 	//user convert
-	netPost.User[0][0] = float32(post.UserID)
+	netPost.User[0][0] = float32(post.User.Int)
 
 	//reports convert
 	for i := 0; i < 100; i++ {
 		if len(post.Reports) > 0 {
 			randomIndex := rand.Intn(len(post.Reports))
-			netPost.Reports[0][i] = float32(post.Reports[randomIndex])
+			netPost.Reports[0][i] = float32(post.Reports[randomIndex].Int)
 			post.Reports = remove(post.Reports, randomIndex)
 		} else {
 			netPost.Reports[0][i] = 0
@@ -115,7 +115,7 @@ func convertPost(post data.Post) netData {
 	for i := 0; i < 100; i++ {
 		if len(post.Views) > 0 {
 			randomIndex := rand.Intn(len(post.Views))
-			netPost.Views[0][i][0] = float32(post.Views[randomIndex].UserID)
+			netPost.Views[0][i][0] = float32(post.Views[randomIndex].User.Int)
 			netPost.Views[0][i][1] = float32(post.Views[randomIndex].Device)
 			netPost.Views[0][i][2] = float32(post.Views[randomIndex].Lati)
 			netPost.Views[0][i][3] = float32(post.Views[randomIndex].Long)
@@ -136,7 +136,7 @@ func convertPost(post data.Post) netData {
 	for i := 0; i < 100; i++ {
 		if len(post.Shares) > 0 {
 			randomIndex := rand.Intn(len(post.Shares))
-			netPost.Shares[0][i] = float32(post.Shares[randomIndex])
+			netPost.Shares[0][i] = float32(post.Shares[randomIndex].Int)
 			post.Shares = remove(post.Shares, randomIndex)
 		} else {
 			netPost.Shares[0][i] = 0
@@ -189,7 +189,7 @@ func Recommend(post data.Post, requesting data.Requesting) (interface{}, error) 
 
 	//requesting user convert
 	var requestingUserArray [1][1]float32
-	requestingUserArray[0][0] = float32(requesting.UserID)
+	requestingUserArray[0][0] = float32(requesting.User.Int)
 
 	//requesting lat convert
 	var requestingLatArray [1][1]float32

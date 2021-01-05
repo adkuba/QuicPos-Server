@@ -8,7 +8,9 @@ import (
 	"QuicPos/internal/mongodb"
 	"QuicPos/internal/stats"
 	"QuicPos/internal/tensorflow"
+	"QuicPos/internal/user"
 	"context"
+	"errors"
 	"math/rand"
 	"sort"
 	"time"
@@ -40,6 +42,25 @@ func AddMoney(payment model.Payment) (bool, error) {
 	return true, nil
 }
 
+//Remove post
+func Remove(postID string, userUUID string) error {
+
+	post, err := GetByID(postID, false)
+	if err != nil {
+		return err
+	}
+
+	if post.User.UUID == userUUID {
+		objectID, _ := primitive.ObjectIDFromHex(postID)
+		_, err := mongodb.PostsCol.DeleteOne(
+			context.TODO(),
+			bson.M{"_id": objectID},
+		)
+		return err
+	}
+	return errors.New("bad user request")
+}
+
 //Share post
 func Share(newReport model.NewReportShare) (bool, error) {
 	post, err := GetByID(newReport.PostID, false)
@@ -47,12 +68,18 @@ func Share(newReport model.NewReportShare) (bool, error) {
 		return false, err
 	}
 	shares := post.Shares
+
+	user, err := user.GetUser(newReport.UserID)
+	if err != nil {
+		return false, err
+	}
+
 	for _, sh := range shares {
-		if sh == newReport.UserID {
+		if sh == &user {
 			return true, err
 		}
 	}
-	shares = append(shares, newReport.UserID)
+	shares = append(shares, &user)
 
 	objectID, _ := primitive.ObjectIDFromHex(newReport.PostID)
 	_, err = mongodb.PostsCol.UpdateOne(
@@ -75,12 +102,18 @@ func Report(newReport model.NewReportShare) (bool, error) {
 		return false, err
 	}
 	reports := post.Reports
+
+	user, err := user.GetUser(newReport.UserID)
+	if err != nil {
+		return false, err
+	}
+
 	for _, rep := range reports {
-		if rep == newReport.UserID {
+		if rep == &user {
 			return true, err
 		}
 	}
-	reports = append(reports, newReport.UserID)
+	reports = append(reports, &user)
 
 	objectID, _ := primitive.ObjectIDFromHex(newReport.PostID)
 	_, err = mongodb.PostsCol.UpdateOne(
@@ -111,8 +144,14 @@ func AddView(newView model.NewView, ip string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
+
+	user, err := user.GetUser(newView.UserID)
+	if err != nil {
+		return false, err
+	}
+
 	view := &data.View{
-		UserID:       newView.UserID,
+		User:         user,
 		Time:         newView.Time,
 		Localization: loc,
 		Lati:         lati,
@@ -207,7 +246,7 @@ func GetOneRandom() (data.Post, error) {
 }
 
 //GetOne gets one random post
-func GetOne(userID int, ip string, ad bool) (data.Post, error) {
+func GetOne(userID string, ip string, ad bool) (data.Post, error) {
 	reviewed := bson.D{{"$match", bson.M{"initialreview": true}}}
 	notBlocked := bson.D{{"$match", bson.M{"blocked": false}}}
 	notWatched := bson.D{{"$match", bson.M{"views": bson.M{"$not": bson.M{"$elemMatch": bson.M{"userid": userID}}}}}}
@@ -241,16 +280,35 @@ func GetOne(userID int, ip string, ad bool) (data.Post, error) {
 		return data.Post{}, err
 	}
 
+	//no ads
+	if len(showsLoaded) == 0 {
+		pipeline = mongo.Pipeline{reviewed, notBlocked, notWatched, sample}
+		showLoadedCursor, err := mongodb.PostsCol.Aggregate(context.TODO(), pipeline)
+		if err != nil {
+			return data.Post{}, err
+		}
+		if err := showLoadedCursor.All(context.TODO(), &showsLoaded); err != nil {
+			return data.Post{}, err
+		}
+		ad = false
+	}
+
 	//predict
 	_, lati, long, err := geoloc.GetLocalization(ip)
 	if err != nil {
 		return data.Post{}, err
 	}
+
+	user, err := user.GetUser(userID)
+	if err != nil {
+		return data.Post{}, err
+	}
+
 	requesting := data.Requesting{
-		UserID: userID,
-		Lat:    lati,
-		Long:   long,
-		Date:   time.Now(),
+		User: user,
+		Lat:  lati,
+		Long: long,
+		Date: time.Now(),
 	}
 	bestValue := -1
 	best := -1

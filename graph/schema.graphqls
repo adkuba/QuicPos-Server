@@ -3,8 +3,8 @@
 # https://gqlgen.com/getting-started/
 
 type Query {
-  post(userId: Int!, normalMode: Boolean!, password: String!, ad: Boolean!): PostOut!
-  createUser(password: String!): Int!
+  post(userId: String!, normalMode: Boolean!, password: String!, ad: Boolean!): PostOut!
+  createUser(password: String!): String!
   viewerPost(id: String!): PostOut!
   unReviewed(password: String!, new: Boolean!): PostReview!
   storageIntegrity(password: String!): String!
@@ -13,7 +13,7 @@ type Query {
 }
 
 type Stats {
-  userid: Int!
+  userid: String!
   text: String!
   views: [View!]
   money: Float!
@@ -27,7 +27,7 @@ type View {
 type PostOut {
   ID: String!
   text: String!
-  userId: Int!
+  userId: String!
   views: Int!
   shares: Int!
   creationTime: String!
@@ -45,19 +45,19 @@ type PostReview {
 
 input NewPost {
   text: String!
-  userId: Int!
+  userId: String!
   image: String! #base64 string
 }
 
 input NewView {
   postID: String!
-  userId: Int!
+  userId: String!
   time: Float!
   deviceDetails: String!
 }
 
 input NewReportShare {
-  userID: Int!
+  userID: String!
   postID: String!
 }
 
@@ -78,6 +78,11 @@ input Payment {
   postid: String!
 }
 
+input Remove {
+  postID: String!
+  userID: String!
+}
+
 type Mutation {
   createPost(input: NewPost!, password: String!): PostOut!
   review(input: Review!): Boolean!
@@ -86,4 +91,5 @@ type Mutation {
   view(input: NewView!, password: String!): Boolean!
   learning(input: Learning!, password: String!): Boolean!
   payment(input: Payment!): Boolean!
+  removePost(input: Remove!, password: String!): Boolean!
 }

@@ -28,7 +28,11 @@ func (r *mutationResolver) CreatePost(ctx context.Context, input model.NewPost, 
 		var err error
 		postO.ID = primitive.NewObjectIDFromTimestamp(time.Now())
 		postO.Text = input.Text
-		postO.UserID = input.UserID
+		userO, err := user.GetUser(input.UserID)
+		if err != nil {
+			return &model.PostOut{}, err
+		}
+		postO.User = userO
 		postO.CreationTime = time.Now()
 		postO.Image, err = storage.UploadFile(input.Image)
 		if err != nil {
@@ -42,13 +46,13 @@ func (r *mutationResolver) CreatePost(ctx context.Context, input model.NewPost, 
 		postO.OutsideViews = nil
 		postO.Money = 0
 		postID, err := post.Save(postO)
-		return &model.PostOut{ID: postID, Text: postO.Text, UserID: postO.UserID, Shares: len(postO.Shares), Views: len(postO.Views), CreationTime: postO.CreationTime.String(), InitialReview: postO.InitialReview, Image: postO.Image, Blocked: postO.Blocked, Money: postO.Money}, err
+		return &model.PostOut{ID: postID, Text: postO.Text, UserID: postO.User.UUID, Shares: len(postO.Shares), Views: len(postO.Views), CreationTime: postO.CreationTime.String(), InitialReview: postO.InitialReview, Image: postO.Image, Blocked: postO.Blocked, Money: postO.Money}, err
 	}
 	return &model.PostOut{}, errors.New("bad key")
 }
 
 func (r *mutationResolver) Review(ctx context.Context, input model.Review) (bool, error) {
-	if input.Password == "" {
+	if input.Password == data.AdminPass {
 		result, err := post.ReviewAction(input.New, input.PostID, input.Delete)
 		return result, err
 	}
@@ -97,33 +101,44 @@ func (r *mutationResolver) Payment(ctx context.Context, input model.Payment) (bo
 	return result, err
 }
 
-func (r *queryResolver) Post(ctx context.Context, userID int, normalMode bool, password string, ad bool) (*model.PostOut, error) {
+func (r *mutationResolver) RemovePost(ctx context.Context, input model.Remove, password string) (bool, error) {
+	if password == data.Pass {
+		err := post.Remove(input.PostID, input.UserID)
+		if err != nil {
+			return false, err
+		}
+		return true, nil
+	}
+	return false, errors.New("bad password")
+}
+
+func (r *queryResolver) Post(ctx context.Context, userID string, normalMode bool, password string, ad bool) (*model.PostOut, error) {
 	if password == data.Pass {
 		if normalMode || ad {
 			post, err := post.GetOne(userID, ctx.Value(ip.IPCtxKey).(*ip.DeviceDetails).IP, ad)
-			return &model.PostOut{ID: post.ID.String(), Text: post.Text, UserID: post.UserID, Shares: len(post.Shares), Views: len(post.Views) + len(post.OutsideViews), InitialReview: post.InitialReview, Image: post.Image, CreationTime: post.CreationTime.String(), Blocked: post.Blocked, Money: post.Money}, err
+			return &model.PostOut{ID: post.ID.String(), Text: post.Text, UserID: post.User.UUID, Shares: len(post.Shares), Views: len(post.Views) + len(post.OutsideViews), InitialReview: post.InitialReview, Image: post.Image, CreationTime: post.CreationTime.String(), Blocked: post.Blocked, Money: post.Money}, err
 		}
 		post, err := post.GetOneRandom()
-		return &model.PostOut{ID: post.ID.String(), Text: post.Text, UserID: post.UserID, Shares: len(post.Shares), Views: len(post.Views) + len(post.OutsideViews), InitialReview: post.InitialReview, Image: post.Image, CreationTime: post.CreationTime.String(), Blocked: post.Blocked, Money: post.Money}, err
+		return &model.PostOut{ID: post.ID.String(), Text: post.Text, UserID: post.User.UUID, Shares: len(post.Shares), Views: len(post.Views) + len(post.OutsideViews), InitialReview: post.InitialReview, Image: post.Image, CreationTime: post.CreationTime.String(), Blocked: post.Blocked, Money: post.Money}, err
 	}
 	return &model.PostOut{}, errors.New("bad key")
 }
 
-func (r *queryResolver) CreateUser(ctx context.Context, password string) (int, error) {
+func (r *queryResolver) CreateUser(ctx context.Context, password string) (string, error) {
 	if password == data.Pass {
-		id, err := user.GetNextUser(ctx.Value(ip.IPCtxKey).(*ip.DeviceDetails).IP)
+		id, err := user.Create(ctx.Value(ip.IPCtxKey).(*ip.DeviceDetails).IP)
 		return id, err
 	}
-	return 0, errors.New("bad key")
+	return "", errors.New("bad key")
 }
 
 func (r *queryResolver) ViewerPost(ctx context.Context, id string) (*model.PostOut, error) {
 	post, err := post.GetByID(id, true)
-	return &model.PostOut{ID: post.ID.String(), Text: post.Text, UserID: post.UserID, Shares: len(post.Shares), Views: len(post.Views) + len(post.OutsideViews), InitialReview: post.InitialReview, Image: post.Image, CreationTime: post.CreationTime.String(), Blocked: post.Blocked, Money: post.Money}, err
+	return &model.PostOut{ID: post.ID.String(), Text: post.Text, UserID: post.User.UUID, Shares: len(post.Shares), Views: len(post.Views) + len(post.OutsideViews), InitialReview: post.InitialReview, Image: post.Image, CreationTime: post.CreationTime.String(), Blocked: post.Blocked, Money: post.Money}, err
 }
 
 func (r *queryResolver) UnReviewed(ctx context.Context, password string, new bool) (*model.PostReview, error) {
-	if password == "" {
+	if password == data.AdminPass {
 		var postReview data.OutputReview
 		var spam float32
 		var err error
@@ -135,7 +150,7 @@ func (r *queryResolver) UnReviewed(ctx context.Context, password string, new boo
 		post := model.PostOut{
 			ID:            postReview.Post.ID.String(),
 			Text:          postReview.Post.Text,
-			UserID:        postReview.Post.UserID,
+			UserID:        postReview.Post.User.UUID,
 			Shares:        len(postReview.Post.Shares),
 			Views:         len(postReview.Post.Views),
 			InitialReview: postReview.Post.InitialReview,
@@ -175,7 +190,7 @@ func (r *queryResolver) GetStats(ctx context.Context, id string) (*model.Stats, 
 		views = append(views, view)
 	}
 
-	return &model.Stats{Text: post.Text, Userid: post.UserID, Views: views, Money: float64(post.Money) / 100}, nil
+	return &model.Stats{Text: post.Text, Userid: post.User.UUID, Views: views, Money: float64(post.Money) / 100}, nil
 }
 
 func (r *queryResolver) GetStripeClient(ctx context.Context, amount float64) (string, error) {

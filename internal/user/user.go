@@ -2,6 +2,9 @@ package user
 
 import (
 	"context"
+	"github.com/google/uuid"
+	"strings"
+	"time"
 
 	"QuicPos/internal/data"
 	"QuicPos/internal/mongodb"
@@ -25,6 +28,14 @@ func getLastUser() (int, error) {
 	return user.LastUser, nil
 }
 
+//GetUser by id
+func GetUser(id string) (data.User, error) {
+	result := mongodb.UsersCol.FindOne(context.TODO(), bson.M{"uuid": id})
+	var user data.User
+	result.Decode(&user)
+	return user, nil
+}
+
 //CheckCounter on server start
 func CheckCounter() {
 	lastUser, err := getLastUser()
@@ -46,8 +57,25 @@ func updateLastUser() error {
 	return err
 }
 
+//Create new user
+func Create(ip string) (string, error) {
+	uuid := uuid.New().String()
+	uuid = strings.ReplaceAll(uuid, "-", "")
+	intNum, err := getNextUser(ip)
+	if err != nil {
+		return "", err
+	}
+	user := &data.User{
+		ID:   primitive.NewObjectIDFromTimestamp(time.Now()),
+		UUID: uuid,
+		Int:  intNum,
+	}
+	_, insertErr := mongodb.UsersCol.InsertOne(mongodb.Ctx, user)
+	return uuid, insertErr
+}
+
 //GetNextUser id
-func GetNextUser(ip string) (int, error) {
+func getNextUser(ip string) (int, error) {
 	counter++
 
 	err := updateLastUser()
