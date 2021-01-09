@@ -83,6 +83,11 @@ input Remove {
   userID: String!
 }
 
+input Block {
+  reqUser: String!
+  blockUser: String!
+}
+
 type Mutation {
   createPost(input: NewPost!, password: String!): PostOut!
   review(input: Review!): Boolean!
@@ -92,4 +97,5 @@ type Mutation {
   learning(input: Learning!, password: String!): Boolean!
   payment(input: Payment!): Boolean!
   removePost(input: Remove!, password: String!): Boolean!
+  blockUser(input: Block!, password: String!): Boolean!
 }

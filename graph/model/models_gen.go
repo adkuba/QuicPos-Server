@@ -2,6 +2,11 @@
 
 package model
 
+type Block struct {
+	ReqUser   string `json:"reqUser"`
+	BlockUser string `json:"blockUser"`
+}
+
 type Learning struct {
 	Recommender float64 `json:"recommender"`
 	Detector    float64 `json:"detector"`

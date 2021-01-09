@@ -254,19 +254,31 @@ func GetOne(userID string, ip string, ad bool) (data.Post, error) {
 	lessViews := bson.D{{"$match", bson.M{"views.9": bson.M{"$exists": false}}}}
 	ads := bson.D{{"$match", bson.M{"money": bson.M{"$gt": 0}}}}
 
+	user, err := user.GetUser(userID)
+	if err != nil {
+		return data.Post{}, err
+	}
+
+	if user.Blocking == nil {
+		user.Blocking = append(user.Blocking, "")
+	}
+
+	//user blocking
+	notUserBlocked := bson.D{{"$match", bson.M{"user.uuid": bson.M{"$nin": user.Blocking}}}}
+
 	//normal
-	pipeline := mongo.Pipeline{reviewed, notBlocked, notWatched, sample}
+	pipeline := mongo.Pipeline{reviewed, notUserBlocked, notBlocked, notWatched, sample}
 
 	//sometimes get only posts with less than 10 views
 	//<0, 49> 1 to 50 chance of hapenning
 	number := rand.Intn(50)
 	if number == 20 {
-		pipeline = mongo.Pipeline{reviewed, notBlocked, notWatched, lessViews, sample}
+		pipeline = mongo.Pipeline{reviewed, notUserBlocked, notBlocked, notWatched, lessViews, sample}
 	}
 
 	//ad choosing
 	if ad {
-		pipeline = mongo.Pipeline{reviewed, notBlocked, ads, sample}
+		pipeline = mongo.Pipeline{reviewed, notUserBlocked, notBlocked, ads, sample}
 	}
 
 	showLoadedCursor, err := mongodb.PostsCol.Aggregate(context.TODO(), pipeline)
@@ -282,7 +294,7 @@ func GetOne(userID string, ip string, ad bool) (data.Post, error) {
 
 	//no ads
 	if len(showsLoaded) == 0 {
-		pipeline = mongo.Pipeline{reviewed, notBlocked, notWatched, sample}
+		pipeline = mongo.Pipeline{reviewed, notUserBlocked, notBlocked, notWatched, sample}
 		showLoadedCursor, err := mongodb.PostsCol.Aggregate(context.TODO(), pipeline)
 		if err != nil {
 			return data.Post{}, err
@@ -295,11 +307,6 @@ func GetOne(userID string, ip string, ad bool) (data.Post, error) {
 
 	//predict
 	_, lati, long, err := geoloc.GetLocalization(ip)
-	if err != nil {
-		return data.Post{}, err
-	}
-
-	user, err := user.GetUser(userID)
 	if err != nil {
 		return data.Post{}, err
 	}

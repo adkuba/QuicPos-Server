@@ -44,6 +44,7 @@ type DirectiveRoot struct {
 
 type ComplexityRoot struct {
 	Mutation struct {
+		BlockUser  func(childComplexity int, input model.Block, password string) int
 		CreatePost func(childComplexity int, input model.NewPost, password string) int
 		Learning   func(childComplexity int, input model.Learning, password string) int
 		Payment    func(childComplexity int, input model.Payment) int
@@ -105,6 +106,7 @@ type MutationResolver interface {
 	Learning(ctx context.Context, input model.Learning, password string) (bool, error)
 	Payment(ctx context.Context, input model.Payment) (bool, error)
 	RemovePost(ctx context.Context, input model.Remove, password string) (bool, error)
+	BlockUser(ctx context.Context, input model.Block, password string) (bool, error)
 }
 type QueryResolver interface {
 	Post(ctx context.Context, userID string, normalMode bool, password string, ad bool) (*model.PostOut, error)
@@ -130,6 +132,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 	ec := executionContext{nil, e}
 	_ = ec
 	switch typeName + "." + field {
+
+	case "Mutation.blockUser":
+		if e.complexity.Mutation.BlockUser == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_blockUser_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.BlockUser(childComplexity, args["input"].(model.Block), args["password"].(string)), true
 
 	case "Mutation.createPost":
 		if e.complexity.Mutation.CreatePost == nil {
@@ -593,6 +607,11 @@ input Remove {
   userID: String!
 }
 
+input Block {
+  reqUser: String!
+  blockUser: String!
+}
+
 type Mutation {
   createPost(input: NewPost!, password: String!): PostOut!
   review(input: Review!): Boolean!
@@ -602,6 +621,7 @@ type Mutation {
   learning(input: Learning!, password: String!): Boolean!
   payment(input: Payment!): Boolean!
   removePost(input: Remove!, password: String!): Boolean!
+  blockUser(input: Block!, password: String!): Boolean!
 }`, BuiltIn: false},
 }
 var parsedSchema = gqlparser.MustLoadSchema(sources...)
@@ -609,6 +629,30 @@ var parsedSchema = gqlparser.MustLoadSchema(sources...)
 // endregion ************************** generated!.gotpl **************************
 
 // region    ***************************** args.gotpl *****************************
+
+func (ec *executionContext) field_Mutation_blockUser_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 model.Block
+	if tmp, ok := rawArgs["input"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
+		arg0, err = ec.unmarshalNBlock2QuicPosᚋgraphᚋmodelᚐBlock(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["input"] = arg0
+	var arg1 string
+	if tmp, ok := rawArgs["password"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("password"))
+		arg1, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["password"] = arg1
+	return args, nil
+}
 
 func (ec *executionContext) field_Mutation_createPost_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
@@ -1289,6 +1333,48 @@ func (ec *executionContext) _Mutation_removePost(ctx context.Context, field grap
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return ec.resolvers.Mutation().RemovePost(rctx, args["input"].(model.Remove), args["password"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_blockUser(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_blockUser_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().BlockUser(rctx, args["input"].(model.Block), args["password"].(string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3419,6 +3505,34 @@ func (ec *executionContext) ___Type_ofType(ctx context.Context, field graphql.Co
 
 // region    **************************** input.gotpl *****************************
 
+func (ec *executionContext) unmarshalInputBlock(ctx context.Context, obj interface{}) (model.Block, error) {
+	var it model.Block
+	var asMap = obj.(map[string]interface{})
+
+	for k, v := range asMap {
+		switch k {
+		case "reqUser":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("reqUser"))
+			it.ReqUser, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "blockUser":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("blockUser"))
+			it.BlockUser, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputLearning(ctx context.Context, obj interface{}) (model.Learning, error) {
 	var it model.Learning
 	var asMap = obj.(map[string]interface{})
@@ -3715,6 +3829,11 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			}
 		case "removePost":
 			out.Values[i] = ec._Mutation_removePost(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "blockUser":
+			out.Values[i] = ec._Mutation_blockUser(ctx, field)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
@@ -4281,6 +4400,11 @@ func (ec *executionContext) ___Type(ctx context.Context, sel ast.SelectionSet, o
 // endregion **************************** object.gotpl ****************************
 
 // region    ***************************** type.gotpl *****************************
+
+func (ec *executionContext) unmarshalNBlock2QuicPosᚋgraphᚋmodelᚐBlock(ctx context.Context, v interface{}) (model.Block, error) {
+	res, err := ec.unmarshalInputBlock(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
 
 func (ec *executionContext) unmarshalNBoolean2bool(ctx context.Context, v interface{}) (bool, error) {
 	res, err := graphql.UnmarshalBoolean(v)

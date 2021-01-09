@@ -133,7 +133,7 @@ mutation create {
 Get post
 ```graphql
 query {
-  post(userId: -1, normalMode: true, password: "kubad") {
+  post(userId: -1, normalMode: true, ad: false, password: "kubad") {
     ID
     text
     userId
@@ -211,6 +211,18 @@ query {
   }
 }
 ```
+
+---
+Block user by user
+```graphql
+mutation{
+  blockUser(input: {
+    reqUser: ""
+    blockUser: ""
+  }, password: "")
+}
+```
+
 
 ---
 Initial review without delete

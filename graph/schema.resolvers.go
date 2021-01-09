@@ -112,6 +112,17 @@ func (r *mutationResolver) RemovePost(ctx context.Context, input model.Remove, p
 	return false, errors.New("bad password")
 }
 
+func (r *mutationResolver) BlockUser(ctx context.Context, input model.Block, password string) (bool, error) {
+	if password == data.Pass {
+		err := user.Block(input.ReqUser, input.BlockUser)
+		if err != nil {
+			return false, err
+		}
+		return true, nil
+	}
+	return false, errors.New("bad password")
+}
+
 func (r *queryResolver) Post(ctx context.Context, userID string, normalMode bool, password string, ad bool) (*model.PostOut, error) {
 	if password == data.Pass {
 		if normalMode || ad {

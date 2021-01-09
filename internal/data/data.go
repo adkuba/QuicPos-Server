@@ -43,12 +43,6 @@ type ViewModel struct {
 	Number int
 }
 
-//UserModel struct for database
-type UserModel struct {
-	ID       primitive.ObjectID `bson:"_id" json:"id,omitempty"`
-	LastUser int
-}
-
 //Requesting user struct
 type Requesting struct {
 	User User
@@ -59,9 +53,10 @@ type Requesting struct {
 
 //User struct
 type User struct {
-	ID   primitive.ObjectID `bson:"_id" json:"id,omitempty"`
-	UUID string
-	Int  int
+	ID       primitive.ObjectID `bson:"_id" json:"id,omitempty"`
+	UUID     string
+	Int      int
+	Blocking []string
 }
 
 //Post struct
