@@ -10,66 +10,33 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-var counter = 0
-
 //GetDevice id
-func GetDevice(name string) (int, error) {
-	number := exists(name)
-	if number == -1 {
-		newDevice := data.ViewModel{
-			ID:     primitive.NewObjectIDFromTimestamp(time.Now()),
-			Name:   name,
-			Number: counter,
+func GetDevice(name string) (string, error) {
+	id := exists(name)
+	if id == "" {
+		newDevice := data.Device{
+			ID:   primitive.NewObjectIDFromTimestamp(time.Now()),
+			Name: name,
 		}
 		_, insertErr := mongodb.DevicesCol.InsertOne(mongodb.Ctx, newDevice)
 		if insertErr != nil {
-			return -1, insertErr
+			return "", insertErr
 		}
 
-		counter++
-		err := updateCounter()
-		if err != nil {
-			return -1, err
-		}
-
-		return counter, nil
+		return newDevice.ID.String(), nil
 	}
-	return number, nil
+	return id, nil
 }
 
-func updateCounter() error {
-
-	infoID, _ := primitive.ObjectIDFromHex("5fd38ac0335016722636c1f2")
-	_, err := mongodb.DevicesCol.UpdateOne(
-		context.TODO(),
-		bson.M{"_id": infoID},
-		bson.D{
-			{"$set", bson.D{{"number", counter}}},
-		},
-	)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-//Init device manager
-func Init() {
-	result := mongodb.DevicesCol.FindOne(context.TODO(), bson.M{"name": "info-document"})
-	var info data.ViewModel
-	result.Decode(&info)
-	counter = info.Number
-}
-
-func exists(name string) int {
+func exists(name string) string {
 	result := mongodb.DevicesCol.FindOne(context.TODO(), bson.M{"name": name})
-	var device data.ViewModel
+	var device data.Device
 	result.Decode(&device)
 
 	nullID, _ := primitive.ObjectIDFromHex("000000000000000000000000")
 
 	if device.ID == nullID {
-		return -1
+		return ""
 	}
-	return device.Number
+	return device.ID.String()
 }

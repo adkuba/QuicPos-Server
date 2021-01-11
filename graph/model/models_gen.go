@@ -61,7 +61,7 @@ type Remove struct {
 
 type Review struct {
 	PostID   string `json:"postID"`
-	New      bool   `json:"new"`
+	Type     int    `json:"type"`
 	Delete   bool   `json:"delete"`
 	Password string `json:"password"`
 }

@@ -45,7 +45,7 @@ func RemoveParentless() (int, error) {
 		//check if id is in array
 		name := attrs.Name
 		if name[len(name)-5:] == "small" {
-			continue
+			toDelete = append(toDelete, name)
 		}
 		if stringInSlice(name, imagesExceptions) {
 			continue
@@ -53,7 +53,6 @@ func RemoveParentless() (int, error) {
 
 		if !stringInSlice(name, images) {
 			toDelete = append(toDelete, name)
-			toDelete = append(toDelete, name+"_small")
 		}
 	}
 

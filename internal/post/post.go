@@ -11,6 +11,7 @@ import (
 	"QuicPos/internal/user"
 	"context"
 	"errors"
+	"log"
 	"math/rand"
 	"sort"
 	"time"
@@ -20,6 +21,59 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
+
+func pagination(filter interface{}, pageNum int64, pageSize int64) *mongo.Cursor {
+	opts := options.FindOptions{}
+	opts.SetSkip((pageNum - 1) * pageSize)
+	opts.SetLimit(pageSize)
+	cursor, _ := mongodb.PostsCol.Find(context.TODO(), filter, &opts)
+	return cursor
+}
+
+//GenAllImagesFeatures using mobilenet
+func GenAllImagesFeatures() error {
+
+	pageNum := int64(1)
+	pageSize := int64(100)
+
+	for true {
+		log.Println("Start pagination")
+		cursor := pagination(bson.M{}, pageNum, pageSize)
+		var showsLoaded []*data.Post
+		if err := cursor.All(context.TODO(), &showsLoaded); err != nil {
+			return err
+		}
+		if len(showsLoaded) == 0 {
+			break
+		}
+
+		for _, post := range showsLoaded {
+			if post.Image != "" {
+				features, err := tensorflow.GenerateImageFeatures(post.Image)
+				if err != nil {
+					return err
+				}
+				//log.Println("Updating")
+				_, err = mongodb.PostsCol.UpdateOne(
+					context.TODO(),
+					bson.M{"_id": post.ID},
+					bson.D{
+						{"$set", bson.D{{"imagefeatures", features}}},
+					},
+				)
+				if err != nil {
+					return err
+				}
+			}
+		}
+
+		pageNum++
+		//log.Println("100 images features generated!")
+		//return nil
+	}
+
+	return nil
+}
 
 //AddMoney to post
 func AddMoney(payment model.Payment) (bool, error) {
@@ -50,7 +104,7 @@ func Remove(postID string, userUUID string) error {
 		return err
 	}
 
-	if post.User.UUID == userUUID {
+	if post.User == userUUID {
 		objectID, _ := primitive.ObjectIDFromHex(postID)
 		_, err := mongodb.PostsCol.DeleteOne(
 			context.TODO(),
@@ -69,17 +123,12 @@ func Share(newReport model.NewReportShare) (bool, error) {
 	}
 	shares := post.Shares
 
-	user, err := user.GetUser(newReport.UserID)
-	if err != nil {
-		return false, err
-	}
-
 	for _, sh := range shares {
-		if sh == &user {
-			return true, err
+		if sh == &newReport.UserID {
+			return true, nil
 		}
 	}
-	shares = append(shares, &user)
+	shares = append(shares, &newReport.UserID)
 
 	objectID, _ := primitive.ObjectIDFromHex(newReport.PostID)
 	_, err = mongodb.PostsCol.UpdateOne(
@@ -103,17 +152,12 @@ func Report(newReport model.NewReportShare) (bool, error) {
 	}
 	reports := post.Reports
 
-	user, err := user.GetUser(newReport.UserID)
-	if err != nil {
-		return false, err
-	}
-
 	for _, rep := range reports {
-		if rep == &user {
-			return true, err
+		if rep == &newReport.UserID {
+			return true, nil
 		}
 	}
-	reports = append(reports, &user)
+	reports = append(reports, &newReport.UserID)
 
 	objectID, _ := primitive.ObjectIDFromHex(newReport.PostID)
 	_, err = mongodb.PostsCol.UpdateOne(
@@ -136,7 +180,7 @@ func AddView(newView model.NewView, ip string) (bool, error) {
 		return false, err
 	}
 	views := post.Views
-	loc, lati, long, err := geoloc.GetLocalization(ip)
+	loc, _, _, err := geoloc.GetLocalization(ip)
 	if err != nil {
 		return false, err
 	}
@@ -145,17 +189,11 @@ func AddView(newView model.NewView, ip string) (bool, error) {
 		return false, err
 	}
 
-	user, err := user.GetUser(newView.UserID)
-	if err != nil {
-		return false, err
-	}
-
 	view := &data.View{
-		User:         user,
+		User:         newView.UserID,
 		Time:         newView.Time,
 		Localization: loc,
-		Lati:         lati,
-		Long:         long,
+		IP:           ip,
 		Device:       deviceID,
 		Date:         time.Now(),
 	}
@@ -306,15 +344,16 @@ func GetOne(userID string, ip string, ad bool) (data.Post, error) {
 	}
 
 	//predict
-	_, lati, long, err := geoloc.GetLocalization(ip)
-	if err != nil {
-		return data.Post{}, err
-	}
+	/*
+		_, lati, long, err := geoloc.GetLocalization(ip)
+		if err != nil {
+			return data.Post{}, err
+		}
+	*/
 
 	requesting := data.Requesting{
-		User: user,
-		Lat:  lati,
-		Long: long,
+		User: userID,
+		IP:   ip,
 		Date: time.Now(),
 	}
 	bestValue := -1
@@ -414,6 +453,30 @@ func GetOneNew() (data.OutputReview, float32, error) {
 	return data.OutputReview{data.Post{}, 0}, 0, nil
 }
 
+//GetOneNonHuman get post without humanreview
+func GetOneNonHuman() (data.OutputReview, float32, error) {
+
+	result, err := mongodb.PostsCol.Find(context.TODO(), bson.M{"humanreview": false})
+	if err != nil {
+		return data.OutputReview{}, 0, err
+	}
+
+	var posts []*data.Post
+	if err = result.All(context.TODO(), &posts); err != nil {
+		return data.OutputReview{}, 0, nil
+	}
+	if len(posts) > 0 {
+		//predict
+		inter, err := tensorflow.Spam(*posts[0])
+		if err != nil {
+			return data.OutputReview{}, 0, err
+		}
+		spam := inter.([][]float32)
+		return data.OutputReview{*posts[0], len(posts)}, spam[0][0], nil
+	}
+	return data.OutputReview{data.Post{}, 0}, 0, nil
+}
+
 //GetOneReported gets the most repoted post
 func GetOneReported() (data.OutputReview, float32, error) {
 
@@ -444,16 +507,17 @@ func GetOneReported() (data.OutputReview, float32, error) {
 }
 
 //ReviewAction reviews post
-func ReviewAction(new bool, id string, delete bool) (bool, error) {
+func ReviewAction(opType int, id string, delete bool) (bool, error) {
 
 	objectID, _ := primitive.ObjectIDFromHex(id)
 	// INITIAL REVIEW
-	if new {
+	if opType == 0 {
 		_, err := mongodb.PostsCol.UpdateOne(
 			context.TODO(),
 			bson.M{"_id": objectID},
 			bson.D{
 				{"$set", bson.D{{"initialreview", true}}},
+				{"$set", bson.D{{"humanreview", true}}},
 			},
 		)
 		if err != nil {
@@ -465,6 +529,33 @@ func ReviewAction(new bool, id string, delete bool) (bool, error) {
 				bson.M{"_id": objectID},
 				bson.D{
 					{"$set", bson.D{{"blocked", true}}},
+					{"$set", bson.D{{"humanreview", true}}},
+				},
+			)
+			if err != nil {
+				return false, err
+			}
+		}
+	} else if opType == 1 {
+		//REPORTED
+		_, err := mongodb.PostsCol.UpdateOne(
+			context.TODO(),
+			bson.M{"_id": objectID},
+			bson.D{
+				{"$set", bson.D{{"reports", nil}}},
+				{"$set", bson.D{{"humanreview", true}}},
+			},
+		)
+		if err != nil {
+			return false, err
+		}
+		if delete {
+			_, err := mongodb.PostsCol.UpdateOne(
+				context.TODO(),
+				bson.M{"_id": objectID},
+				bson.D{
+					{"$set", bson.D{{"blocked", true}}},
+					{"$set", bson.D{{"humanreview", true}}},
 				},
 			)
 			if err != nil {
@@ -472,11 +563,14 @@ func ReviewAction(new bool, id string, delete bool) (bool, error) {
 			}
 		}
 	} else {
+		//WITHOUT HUMANREVIEW
 		_, err := mongodb.PostsCol.UpdateOne(
 			context.TODO(),
 			bson.M{"_id": objectID},
 			bson.D{
+				{"$set", bson.D{{"initialreview", true}}},
 				{"$set", bson.D{{"reports", nil}}},
+				{"$set", bson.D{{"humanreview", true}}},
 			},
 		)
 		if err != nil {

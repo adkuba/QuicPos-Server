@@ -80,7 +80,7 @@ type ComplexityRoot struct {
 		GetStripeClient  func(childComplexity int, amount float64) int
 		Post             func(childComplexity int, userID string, normalMode bool, password string, ad bool) int
 		StorageIntegrity func(childComplexity int, password string) int
-		UnReviewed       func(childComplexity int, password string, new bool) int
+		UnReviewed       func(childComplexity int, password string, typeArg int) int
 		ViewerPost       func(childComplexity int, id string) int
 	}
 
@@ -112,7 +112,7 @@ type QueryResolver interface {
 	Post(ctx context.Context, userID string, normalMode bool, password string, ad bool) (*model.PostOut, error)
 	CreateUser(ctx context.Context, password string) (string, error)
 	ViewerPost(ctx context.Context, id string) (*model.PostOut, error)
-	UnReviewed(ctx context.Context, password string, new bool) (*model.PostReview, error)
+	UnReviewed(ctx context.Context, password string, typeArg int) (*model.PostReview, error)
 	StorageIntegrity(ctx context.Context, password string) (string, error)
 	GetStats(ctx context.Context, id string) (*model.Stats, error)
 	GetStripeClient(ctx context.Context, amount float64) (string, error)
@@ -402,7 +402,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Query.UnReviewed(childComplexity, args["password"].(string), args["new"].(bool)), true
+		return e.complexity.Query.UnReviewed(childComplexity, args["password"].(string), args["type"].(int)), true
 
 	case "Query.viewerPost":
 		if e.complexity.Query.ViewerPost == nil {
@@ -530,7 +530,7 @@ type Query {
   post(userId: String!, normalMode: Boolean!, password: String!, ad: Boolean!): PostOut!
   createUser(password: String!): String!
   viewerPost(id: String!): PostOut!
-  unReviewed(password: String!, new: Boolean!): PostReview!
+  unReviewed(password: String!, type: Int!): PostReview!
   storageIntegrity(password: String!): String!
   getStats(id: String!): Stats!
   getStripeClient(amount: Float!): String!
@@ -587,7 +587,7 @@ input NewReportShare {
 
 input Review {
   postID: String!
-  new: Boolean!
+  type: Int!
   delete: Boolean!
   password: String!
 }
@@ -948,15 +948,15 @@ func (ec *executionContext) field_Query_unReviewed_args(ctx context.Context, raw
 		}
 	}
 	args["password"] = arg0
-	var arg1 bool
-	if tmp, ok := rawArgs["new"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("new"))
-		arg1, err = ec.unmarshalNBoolean2bool(ctx, tmp)
+	var arg1 int
+	if tmp, ok := rawArgs["type"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("type"))
+		arg1, err = ec.unmarshalNInt2int(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["new"] = arg1
+	args["type"] = arg1
 	return args, nil
 }
 
@@ -1997,7 +1997,7 @@ func (ec *executionContext) _Query_unReviewed(ctx context.Context, field graphql
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().UnReviewed(rctx, args["password"].(string), args["new"].(bool))
+		return ec.resolvers.Query().UnReviewed(rctx, args["password"].(string), args["type"].(int))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3739,11 +3739,11 @@ func (ec *executionContext) unmarshalInputReview(ctx context.Context, obj interf
 			if err != nil {
 				return it, err
 			}
-		case "new":
+		case "type":
 			var err error
 
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("new"))
-			it.New, err = ec.unmarshalNBoolean2bool(ctx, v)
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("type"))
+			it.Type, err = ec.unmarshalNInt2int(ctx, v)
 			if err != nil {
 				return it, err
 			}

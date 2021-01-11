@@ -3,6 +3,7 @@ package tensorflow
 import (
 	"QuicPos/internal/data"
 	"QuicPos/internal/storage"
+	"log"
 
 	tf "github.com/tensorflow/tensorflow/tensorflow/go"
 
@@ -25,6 +26,7 @@ type netData struct {
 
 var recommenderModel *tf.SavedModel
 var detectorModel *tf.SavedModel
+var imageModel *tf.SavedModel
 
 //InitModels for recommender and detector
 func InitModels() error {
@@ -40,6 +42,12 @@ func InitModels() error {
 		return err
 	}
 	detectorModel = model
+
+	model, err = tf.LoadSavedModel("./out/image", []string{"serve"}, nil)
+	if err != nil {
+		return err
+	}
+	imageModel = model
 	return nil
 	//defer model.Session.Close()
 }
@@ -57,10 +65,22 @@ func getPixels(data io.Reader) ([1][224][224][3]float32, error) {
 	for y := 0; y < height; y++ {
 		for x := 0; x < width; x++ {
 			r, g, b, _ := img.At(x, y).RGBA()
-			converted[0][y][x][0], converted[0][y][x][1], converted[0][y][x][2] = float32(int(r/257)), float32(int(g/257)), float32(int(b/257))
+			converted[0][y][x][0], converted[0][y][x][1], converted[0][y][x][2] = normalize(int(r), int(g), int(b))
+			//check
+			if converted[0][y][x][0] > 1 || converted[0][y][x][0] < -1 {
+				log.Println("Bad r value")
+			}
 		}
 	}
 	return converted, nil
+}
+
+//value 0-255
+func normalize(r int, g int, b int) (float32, float32, float32) {
+	rValue := float32(r / 257)
+	gValue := float32(g / 257)
+	bValue := float32(b / 257)
+	return rValue/float32(127.5) - 1, gValue/float32(127.5) - 1, bValue/float32(127.5) - 1
 }
 
 func removeView(s []*data.View, i int) []*data.View {
@@ -68,7 +88,7 @@ func removeView(s []*data.View, i int) []*data.View {
 	return s[:len(s)-1]
 }
 
-func remove(s []*data.User, i int) []*data.User {
+func remove(s []*string, i int) []*string {
 	s[i] = s[len(s)-1]
 	return s[:len(s)-1]
 }
@@ -87,13 +107,13 @@ func convertPost(post data.Post) netData {
 	}
 
 	//user convert
-	netPost.User[0][0] = float32(post.User.Int)
+	netPost.User[0][0] = float32(0)
 
 	//reports convert
 	for i := 0; i < 100; i++ {
 		if len(post.Reports) > 0 {
 			randomIndex := rand.Intn(len(post.Reports))
-			netPost.Reports[0][i] = float32(post.Reports[randomIndex].Int)
+			netPost.Reports[0][i] = float32(0)
 			post.Reports = remove(post.Reports, randomIndex)
 		} else {
 			netPost.Reports[0][i] = 0
@@ -115,10 +135,10 @@ func convertPost(post data.Post) netData {
 	for i := 0; i < 100; i++ {
 		if len(post.Views) > 0 {
 			randomIndex := rand.Intn(len(post.Views))
-			netPost.Views[0][i][0] = float32(post.Views[randomIndex].User.Int)
-			netPost.Views[0][i][1] = float32(post.Views[randomIndex].Device)
-			netPost.Views[0][i][2] = float32(post.Views[randomIndex].Lati)
-			netPost.Views[0][i][3] = float32(post.Views[randomIndex].Long)
+			netPost.Views[0][i][0] = float32(0)
+			netPost.Views[0][i][1] = float32(0)
+			netPost.Views[0][i][2] = float32(0)
+			netPost.Views[0][i][3] = float32(0)
 			netPost.Views[0][i][4] = float32(float64(post.Views[randomIndex].Date.Unix()) / float64(100000))
 			netPost.Views[0][i][5] = float32(post.Views[randomIndex].Time)
 			post.Views = removeView(post.Views, randomIndex)
@@ -136,7 +156,7 @@ func convertPost(post data.Post) netData {
 	for i := 0; i < 100; i++ {
 		if len(post.Shares) > 0 {
 			randomIndex := rand.Intn(len(post.Shares))
-			netPost.Shares[0][i] = float32(post.Shares[randomIndex].Int)
+			netPost.Shares[0][i] = float32(0)
 			post.Shares = remove(post.Shares, randomIndex)
 		} else {
 			netPost.Shares[0][i] = 0
@@ -144,6 +164,19 @@ func convertPost(post data.Post) netData {
 	}
 
 	return netPost
+}
+
+//InitialReview of post
+func InitialReview(post data.Post) (bool, error) {
+	result, err := Spam(post)
+	if err != nil {
+		return false, err
+	}
+
+	if result.([][]float32)[0][0] > float32(0.5) {
+		return true, nil
+	}
+	return false, nil
 }
 
 //Spam detection
@@ -189,15 +222,15 @@ func Recommend(post data.Post, requesting data.Requesting) (interface{}, error) 
 
 	//requesting user convert
 	var requestingUserArray [1][1]float32
-	requestingUserArray[0][0] = float32(requesting.User.Int)
+	requestingUserArray[0][0] = float32(0)
 
 	//requesting lat convert
 	var requestingLatArray [1][1]float32
-	requestingLatArray[0][0] = float32(requesting.Lat)
+	requestingLatArray[0][0] = float32(0)
 
 	//requesting long convert
 	var requestingLongArray [1][1]float32
-	requestingLongArray[0][0] = float32(requesting.Long)
+	requestingLongArray[0][0] = float32(0)
 
 	//requesting time convert
 	var requestingTimeArray [1][1]float32

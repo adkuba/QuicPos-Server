@@ -5,8 +5,6 @@ import (
 	"context"
 	"encoding/base64"
 	"errors"
-	"image"
-	"image/jpeg"
 	"io"
 	"io/ioutil"
 	"log"
@@ -15,7 +13,6 @@ import (
 
 	"cloud.google.com/go/storage"
 	"github.com/google/uuid"
-	"github.com/nfnt/resize"
 	"google.golang.org/api/option"
 )
 
@@ -50,27 +47,6 @@ func ReadFile(fileName string) (data []byte) {
 	}
 
 	return data
-}
-
-func uploadSmaller(data []byte, name string) error {
-
-	image, _, err := image.Decode(bytes.NewReader(data))
-	if err != nil {
-		return errors.New("Failed to decode image")
-	}
-	newImage := resize.Resize(224, 224, image, resize.Lanczos3)
-	buf := new(bytes.Buffer)
-	err = jpeg.Encode(buf, newImage, nil)
-	if err != nil {
-		return errors.New("Failed to encode image")
-	}
-
-	result := saveToStorage(name+"_small", buf.Bytes())
-	if result != nil {
-		return errors.New("Cannot save smaller")
-	}
-
-	return nil
 }
 
 func saveToStorage(imageName string, data []byte) error {
@@ -111,11 +87,6 @@ func UploadFile(data string) (string, error) {
 	result := saveToStorage(imageName, unbased)
 	if result != nil {
 		return "", errors.New("Cannot send to storage")
-	}
-
-	err = uploadSmaller(unbased, imageName)
-	if err != nil {
-		return "", err
 	}
 
 	return imageName, nil

@@ -24,36 +24,53 @@ import (
 
 func (r *mutationResolver) CreatePost(ctx context.Context, input model.NewPost, password string) (*model.PostOut, error) {
 	if password == data.Pass {
+		//init
 		var postO data.Post
 		var err error
+
+		//values
 		postO.ID = primitive.NewObjectIDFromTimestamp(time.Now())
 		postO.Text = input.Text
-		userO, err := user.GetUser(input.UserID)
-		if err != nil {
-			return &model.PostOut{}, err
-		}
-		postO.User = userO
+		postO.User = input.UserID
 		postO.CreationTime = time.Now()
-		postO.Image, err = storage.UploadFile(input.Image)
-		if err != nil {
-			return &model.PostOut{}, err
-		}
-		postO.InitialReview = false
+		postO.HumanReview = false
 		postO.Reports = nil
 		postO.Shares = nil
 		postO.Views = nil
 		postO.Blocked = false
 		postO.OutsideViews = nil
 		postO.Money = 0
+
+		//image and features
+		postO.Image, err = storage.UploadFile(input.Image)
+		if err != nil {
+			return &model.PostOut{}, err
+		}
+		if postO.Image != "" {
+			postO.ImageFeatures, err = tensorflow.GenerateImageFeatures(postO.Image)
+			if err != nil {
+				return &model.PostOut{}, err
+			}
+		} else {
+			postO.ImageFeatures = nil
+		}
+
+		//initial review
+		postO.InitialReview, err = tensorflow.InitialReview(postO)
+		if err != nil {
+			return &model.PostOut{}, err
+		}
+
+		//save
 		postID, err := post.Save(postO)
-		return &model.PostOut{ID: postID, Text: postO.Text, UserID: postO.User.UUID, Shares: len(postO.Shares), Views: len(postO.Views), CreationTime: postO.CreationTime.String(), InitialReview: postO.InitialReview, Image: postO.Image, Blocked: postO.Blocked, Money: postO.Money}, err
+		return &model.PostOut{ID: postID, Text: postO.Text, UserID: postO.User, Shares: len(postO.Shares), Views: len(postO.Views), CreationTime: postO.CreationTime.String(), InitialReview: postO.InitialReview, Image: postO.Image, Blocked: postO.Blocked, Money: postO.Money}, err
 	}
 	return &model.PostOut{}, errors.New("bad key")
 }
 
 func (r *mutationResolver) Review(ctx context.Context, input model.Review) (bool, error) {
 	if input.Password == data.AdminPass {
-		result, err := post.ReviewAction(input.New, input.PostID, input.Delete)
+		result, err := post.ReviewAction(input.Type, input.PostID, input.Delete)
 		return result, err
 	}
 	return false, errors.New("bad key")
@@ -127,10 +144,10 @@ func (r *queryResolver) Post(ctx context.Context, userID string, normalMode bool
 	if password == data.Pass {
 		if normalMode || ad {
 			post, err := post.GetOne(userID, ctx.Value(ip.IPCtxKey).(*ip.DeviceDetails).IP, ad)
-			return &model.PostOut{ID: post.ID.String(), Text: post.Text, UserID: post.User.UUID, Shares: len(post.Shares), Views: len(post.Views) + len(post.OutsideViews), InitialReview: post.InitialReview, Image: post.Image, CreationTime: post.CreationTime.String(), Blocked: post.Blocked, Money: post.Money}, err
+			return &model.PostOut{ID: post.ID.String(), Text: post.Text, UserID: post.User, Shares: len(post.Shares), Views: len(post.Views) + len(post.OutsideViews), InitialReview: post.InitialReview, Image: post.Image, CreationTime: post.CreationTime.String(), Blocked: post.Blocked, Money: post.Money}, err
 		}
 		post, err := post.GetOneRandom()
-		return &model.PostOut{ID: post.ID.String(), Text: post.Text, UserID: post.User.UUID, Shares: len(post.Shares), Views: len(post.Views) + len(post.OutsideViews), InitialReview: post.InitialReview, Image: post.Image, CreationTime: post.CreationTime.String(), Blocked: post.Blocked, Money: post.Money}, err
+		return &model.PostOut{ID: post.ID.String(), Text: post.Text, UserID: post.User, Shares: len(post.Shares), Views: len(post.Views) + len(post.OutsideViews), InitialReview: post.InitialReview, Image: post.Image, CreationTime: post.CreationTime.String(), Blocked: post.Blocked, Money: post.Money}, err
 	}
 	return &model.PostOut{}, errors.New("bad key")
 }
@@ -145,23 +162,29 @@ func (r *queryResolver) CreateUser(ctx context.Context, password string) (string
 
 func (r *queryResolver) ViewerPost(ctx context.Context, id string) (*model.PostOut, error) {
 	post, err := post.GetByID(id, true)
-	return &model.PostOut{ID: post.ID.String(), Text: post.Text, UserID: post.User.UUID, Shares: len(post.Shares), Views: len(post.Views) + len(post.OutsideViews), InitialReview: post.InitialReview, Image: post.Image, CreationTime: post.CreationTime.String(), Blocked: post.Blocked, Money: post.Money}, err
+	return &model.PostOut{ID: post.ID.String(), Text: post.Text, UserID: post.User, Shares: len(post.Shares), Views: len(post.Views) + len(post.OutsideViews), InitialReview: post.InitialReview, Image: post.Image, CreationTime: post.CreationTime.String(), Blocked: post.Blocked, Money: post.Money}, err
 }
 
-func (r *queryResolver) UnReviewed(ctx context.Context, password string, new bool) (*model.PostReview, error) {
+func (r *queryResolver) UnReviewed(ctx context.Context, password string, typeArg int) (*model.PostReview, error) {
 	if password == data.AdminPass {
 		var postReview data.OutputReview
 		var spam float32
 		var err error
-		if new {
+
+		//New posts
+		if typeArg == 0 {
 			postReview, spam, err = post.GetOneNew()
-		} else {
+		} else if typeArg == 1 {
+			//reported
 			postReview, spam, err = post.GetOneReported()
+		} else {
+			//without humanreview
+			postReview, spam, err = post.GetOneNonHuman()
 		}
 		post := model.PostOut{
 			ID:            postReview.Post.ID.String(),
 			Text:          postReview.Post.Text,
-			UserID:        postReview.Post.User.UUID,
+			UserID:        postReview.Post.User,
 			Shares:        len(postReview.Post.Shares),
 			Views:         len(postReview.Post.Views),
 			InitialReview: postReview.Post.InitialReview,
@@ -201,7 +224,7 @@ func (r *queryResolver) GetStats(ctx context.Context, id string) (*model.Stats, 
 		views = append(views, view)
 	}
 
-	return &model.Stats{Text: post.Text, Userid: post.User.UUID, Views: views, Money: float64(post.Money) / 100}, nil
+	return &model.Stats{Text: post.Text, Userid: post.User, Views: views, Money: float64(post.Money) / 100}, nil
 }
 
 func (r *queryResolver) GetStripeClient(ctx context.Context, amount float64) (string, error) {

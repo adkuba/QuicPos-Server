@@ -6,7 +6,7 @@ type Query {
   post(userId: String!, normalMode: Boolean!, password: String!, ad: Boolean!): PostOut!
   createUser(password: String!): String!
   viewerPost(id: String!): PostOut!
-  unReviewed(password: String!, new: Boolean!): PostReview!
+  unReviewed(password: String!, type: Int!): PostReview!
   storageIntegrity(password: String!): String!
   getStats(id: String!): Stats!
   getStripeClient(amount: Float!): String!
@@ -63,7 +63,7 @@ input NewReportShare {
 
 input Review {
   postID: String!
-  new: Boolean!
+  type: Int!
   delete: Boolean!
   password: String!
 }

@@ -27,27 +27,24 @@ type Day struct {
 
 //View details struct
 type View struct {
-	User         User
+	User         string
 	Time         float64 //relative to post content and shares JAKI WZOR?
 	Localization string
-	Lati         float64
-	Long         float64
-	Device       int
+	IP           string
+	Device       string
 	Date         time.Time
 }
 
-//ViewModel struct for database
-type ViewModel struct {
-	ID     primitive.ObjectID `bson:"_id" json:"id,omitempty"`
-	Name   string
-	Number int
+//Device struct for database
+type Device struct {
+	ID   primitive.ObjectID `bson:"_id" json:"id,omitempty"`
+	Name string
 }
 
 //Requesting user struct
 type Requesting struct {
-	User User
-	Lat  float64
-	Long float64
+	User string
+	IP   string
 	Date time.Time
 }
 
@@ -55,7 +52,6 @@ type Requesting struct {
 type User struct {
 	ID       primitive.ObjectID `bson:"_id" json:"id,omitempty"`
 	UUID     string
-	Int      int
 	Blocking []string
 }
 
@@ -63,16 +59,18 @@ type User struct {
 type Post struct {
 	ID            primitive.ObjectID `bson:"_id" json:"id,omitempty"`
 	Text          string
-	User          User
-	Reports       []*User
+	User          string
+	Reports       []*string
 	Views         []*View
-	Shares        []*User
+	Shares        []*string
 	CreationTime  time.Time
 	Image         string
 	InitialReview bool
 	Blocked       bool
 	OutsideViews  []*View
 	Money         int
+	ImageFeatures []float32
+	HumanReview   bool
 }
 
 //OutputReview struct with number of posts left
