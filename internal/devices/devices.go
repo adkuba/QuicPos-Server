@@ -23,7 +23,7 @@ func GetDevice(name string) (string, error) {
 			return "", insertErr
 		}
 
-		return newDevice.ID.String(), nil
+		return newDevice.ID.Hex(), nil
 	}
 	return id, nil
 }
@@ -38,5 +38,5 @@ func exists(name string) string {
 	if device.ID == nullID {
 		return ""
 	}
-	return device.ID.String()
+	return device.ID.Hex()
 }

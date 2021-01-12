@@ -174,7 +174,7 @@ query {
 Get the oldest without initial review
 ```graphql
 query {
-  unReviewed(password: "funia", new: true) {
+  unReviewed(password: "funia", type: 0) {
     post {
       ID
       text
@@ -195,7 +195,7 @@ query {
 Get the most reported post
 ```graphql
 query {
-  unReviewed(password: "funia", new: false) {
+  unReviewed(password: "funia", type: 1) {
     post {
       ID
       text
@@ -211,6 +211,28 @@ query {
   }
 }
 ```
+
+---
+Get post without humanreview
+```graphql
+query {
+  unReviewed(password: "funia", type: 2) {
+    post {
+      ID
+      text
+      userId
+      shares
+      views
+      creationTime
+      initialReview
+      image
+    }
+    left
+    spam
+  }
+}
+```
+
 
 ---
 Block user by user

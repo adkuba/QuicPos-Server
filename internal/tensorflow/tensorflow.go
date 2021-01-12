@@ -2,34 +2,52 @@ package tensorflow
 
 import (
 	"QuicPos/internal/data"
-	"QuicPos/internal/storage"
+	"encoding/binary"
+	"encoding/hex"
+	"encoding/json"
+	"io/ioutil"
 	"log"
+	"os"
+	"strings"
 
 	tf "github.com/tensorflow/tensorflow/tensorflow/go"
 
-	"bytes"
 	"image"
-	"image/jpeg"
 	"io"
-	"math/rand"
 )
 
 type netData struct {
-	Text     [1][400]float32
-	User     [1][1]float32
-	Reports  [1][100]float32
-	Creation [1][1]float32
-	Image    [1][224][224][3]float32
-	Views    [1][100][6]float32
-	Shares   [1][100]float32
+	Text   [1][200]float32
+	Image  [1][1280]float32
+	Views  [1][1]float32
+	Shares [1][1]float32
 }
 
 var recommenderModel *tf.SavedModel
 var detectorModel *tf.SavedModel
 var imageModel *tf.SavedModel
+var recommenderDictionary []string
+var detectorDictionary []string
 
-//InitModels for recommender and detector
+//InitModels for recommender and detector and dictionaries
 func InitModels() error {
+
+	jsonFile, err := os.Open("./out/recommenderDictionary.json")
+	if err != nil {
+		return err
+	}
+	defer jsonFile.Close()
+	byteValue, _ := ioutil.ReadAll(jsonFile)
+	json.Unmarshal(byteValue, &recommenderDictionary)
+	//log.Println(recommenderDictionary)
+
+	jsonFile, err = os.Open("./out/detectorDictionary.json")
+	if err != nil {
+		return err
+	}
+	defer jsonFile.Close()
+	byteValue, _ = ioutil.ReadAll(jsonFile)
+	json.Unmarshal(byteValue, &detectorDictionary)
 
 	model, err := tf.LoadSavedModel("./out/recommender", []string{"serve"}, nil)
 	if err != nil {
@@ -93,75 +111,68 @@ func remove(s []*string, i int) []*string {
 	return s[:len(s)-1]
 }
 
-func convertPost(post data.Post) netData {
+func indexOf(tab []string, elem string) int {
+	for idx, value := range tab {
+		if value == elem {
+			return idx
+		}
+	}
+	return -1
+}
+
+//from keras documanetation
+func textToWordSequence(s string) []string {
+	s = strings.ToLower(s)
+	for _, filter := range "!\"#$%&()*+,-./:;<=>?@[\\]^_`{|}~\t\n" {
+		s = strings.ReplaceAll(s, string(filter), " ")
+	}
+	splitted := strings.Split(s, " ")
+	var ready []string
+	for _, value := range splitted {
+		value = strings.ReplaceAll(value, " ", "")
+		if value != "" {
+			ready = append(ready, value)
+		}
+	}
+	return ready
+}
+
+func convertPost(post data.Post, recommender bool) netData {
 
 	var netPost netData
 
 	//text convert
-	for i := 0; i < 400; i++ {
-		char := float32(0)
-		if i < len(post.Text) {
-			char = float32(int(post.Text[i]))
-		}
-		netPost.Text[0][i] = char
-	}
-
-	//user convert
-	netPost.User[0][0] = float32(0)
-
-	//reports convert
-	for i := 0; i < 100; i++ {
-		if len(post.Reports) > 0 {
-			randomIndex := rand.Intn(len(post.Reports))
-			netPost.Reports[0][i] = float32(0)
-			post.Reports = remove(post.Reports, randomIndex)
+	tokens := textToWordSequence(post.Text)
+	for i := 0; i < 200; i++ {
+		if i < len(tokens) {
+			if recommender {
+				netPost.Text[0][i] = float32(indexOf(recommenderDictionary, tokens[i]))
+			} else {
+				netPost.Text[0][i] = float32(indexOf(detectorDictionary, tokens[i]))
+			}
 		} else {
-			netPost.Reports[0][i] = 0
+			netPost.Text[0][i] = -1
 		}
 	}
-
-	//creation convert
-	netPost.Creation[0][0] = float32(float64(post.CreationTime.Unix()) / float64(100000))
+	//log.Println(netPost.Text)
 
 	//image convert
-	if post.Image != "" {
-		image.RegisterFormat("jpeg", "jpeg", jpeg.Decode, jpeg.DecodeConfig)
-		imageData := storage.ReadFile(post.Image + "_small")
-		imageReader := bytes.NewReader(imageData)
-		netPost.Image, _ = getPixels(imageReader)
+	if post.ImageFeatures != nil {
+		for i := 0; i < 1280; i++ {
+			netPost.Image[0][i] = post.ImageFeatures[i]
+		}
+	} else {
+		for i := 0; i < 1280; i++ {
+			netPost.Image[0][i] = 0
+		}
 	}
+	//log.Println(netPost.Image)
 
 	//views convert
-	for i := 0; i < 100; i++ {
-		if len(post.Views) > 0 {
-			randomIndex := rand.Intn(len(post.Views))
-			netPost.Views[0][i][0] = float32(0)
-			netPost.Views[0][i][1] = float32(0)
-			netPost.Views[0][i][2] = float32(0)
-			netPost.Views[0][i][3] = float32(0)
-			netPost.Views[0][i][4] = float32(float64(post.Views[randomIndex].Date.Unix()) / float64(100000))
-			netPost.Views[0][i][5] = float32(post.Views[randomIndex].Time)
-			post.Views = removeView(post.Views, randomIndex)
-		} else {
-			netPost.Views[0][i][0] = 0
-			netPost.Views[0][i][1] = 0
-			netPost.Views[0][i][2] = 0
-			netPost.Views[0][i][3] = 0
-			netPost.Views[0][i][4] = 0
-			netPost.Views[0][i][5] = 0
-		}
-	}
+	netPost.Views[0][0] = float32(len(post.Views))
 
 	//shares convert
-	for i := 0; i < 100; i++ {
-		if len(post.Shares) > 0 {
-			randomIndex := rand.Intn(len(post.Shares))
-			netPost.Shares[0][i] = float32(0)
-			post.Shares = remove(post.Shares, randomIndex)
-		} else {
-			netPost.Shares[0][i] = 0
-		}
-	}
+	netPost.Shares[0][0] = float32(len(post.Shares))
 
 	return netPost
 }
@@ -182,25 +193,15 @@ func InitialReview(post data.Post) (bool, error) {
 //Spam detection
 func Spam(post data.Post) (interface{}, error) {
 
-	netPost := convertPost(post)
+	netPost := convertPost(post, false)
 
 	text, _ := tf.NewTensor(netPost.Text)
-	user, _ := tf.NewTensor(netPost.User)
-	reports, _ := tf.NewTensor(netPost.Reports)
-	creation, _ := tf.NewTensor(netPost.Creation)
 	image, _ := tf.NewTensor(netPost.Image)
-	views, _ := tf.NewTensor(netPost.Views)
-	shares, _ := tf.NewTensor(netPost.Shares)
 
 	result, err := detectorModel.Session.Run(
 		map[tf.Output]*tf.Tensor{
 			recommenderModel.Graph.Operation("serving_default_input_1").Output(0): text,
-			recommenderModel.Graph.Operation("serving_default_input_2").Output(0): user,
-			recommenderModel.Graph.Operation("serving_default_input_3").Output(0): reports,
-			recommenderModel.Graph.Operation("serving_default_input_4").Output(0): creation,
-			recommenderModel.Graph.Operation("serving_default_input_5").Output(0): image,
-			recommenderModel.Graph.Operation("serving_default_input_6").Output(0): views,
-			recommenderModel.Graph.Operation("serving_default_input_7").Output(0): shares,
+			recommenderModel.Graph.Operation("serving_default_input_2").Output(0): image,
 		},
 		[]tf.Output{
 			recommenderModel.Graph.Operation("StatefulPartitionedCall").Output(0),
@@ -218,51 +219,30 @@ func Spam(post data.Post) (interface{}, error) {
 //Recommend post
 func Recommend(post data.Post, requesting data.Requesting) (interface{}, error) {
 
-	netPost := convertPost(post)
+	netPost := convertPost(post, true)
 
 	//requesting user convert
-	var requestingUserArray [1][1]float32
-	requestingUserArray[0][0] = float32(0)
-
-	//requesting lat convert
-	var requestingLatArray [1][1]float32
-	requestingLatArray[0][0] = float32(0)
-
-	//requesting long convert
-	var requestingLongArray [1][1]float32
-	requestingLongArray[0][0] = float32(0)
-
-	//requesting time convert
-	var requestingTimeArray [1][1]float32
-	requestingTimeArray[0][0] = float32(float64(requesting.Date.Unix()) / float64(100000))
+	var requestingUserArray [1][4]float32
+	userBytes, _ := hex.DecodeString(requesting.User)
+	requestingUserArray[0][0] = float32(binary.BigEndian.Uint32(userBytes[0:4]))
+	requestingUserArray[0][1] = float32(binary.BigEndian.Uint32(userBytes[4:8]))
+	requestingUserArray[0][2] = float32(binary.BigEndian.Uint32(userBytes[8:12]))
+	requestingUserArray[0][3] = float32(binary.BigEndian.Uint32(userBytes[12:16]))
+	//log.Println(requestingUserArray[0][0])
 
 	text, _ := tf.NewTensor(netPost.Text)
-	user, _ := tf.NewTensor(netPost.User)
-	reports, _ := tf.NewTensor(netPost.Reports)
-	creation, _ := tf.NewTensor(netPost.Creation)
 	image, _ := tf.NewTensor(netPost.Image)
 	views, _ := tf.NewTensor(netPost.Views)
 	shares, _ := tf.NewTensor(netPost.Shares)
 	requestingUser, _ := tf.NewTensor(requestingUserArray)
-	requestingLat, _ := tf.NewTensor(requestingLatArray)
-	requestingLong, _ := tf.NewTensor(requestingLongArray)
-	requestingTime, _ := tf.NewTensor(requestingTimeArray)
-
-	//log.Println(netPost, requestingLatArray, requestingLongArray, requestingUserArray, requestingTimeArray)
 
 	result, err := recommenderModel.Session.Run(
 		map[tf.Output]*tf.Tensor{
-			recommenderModel.Graph.Operation("serving_default_input_1").Output(0):  text,
-			recommenderModel.Graph.Operation("serving_default_input_2").Output(0):  user,
-			recommenderModel.Graph.Operation("serving_default_input_3").Output(0):  reports,
-			recommenderModel.Graph.Operation("serving_default_input_4").Output(0):  creation,
-			recommenderModel.Graph.Operation("serving_default_input_5").Output(0):  image,
-			recommenderModel.Graph.Operation("serving_default_input_6").Output(0):  views,
-			recommenderModel.Graph.Operation("serving_default_input_7").Output(0):  shares,
-			recommenderModel.Graph.Operation("serving_default_input_8").Output(0):  requestingUser,
-			recommenderModel.Graph.Operation("serving_default_input_9").Output(0):  requestingLat,
-			recommenderModel.Graph.Operation("serving_default_input_10").Output(0): requestingLong,
-			recommenderModel.Graph.Operation("serving_default_input_11").Output(0): requestingTime,
+			recommenderModel.Graph.Operation("serving_default_input_1").Output(0): text,
+			recommenderModel.Graph.Operation("serving_default_input_2").Output(0): image,
+			recommenderModel.Graph.Operation("serving_default_input_3").Output(0): requestingUser,
+			recommenderModel.Graph.Operation("serving_default_input_4").Output(0): views,
+			recommenderModel.Graph.Operation("serving_default_input_5").Output(0): shares,
 		},
 		[]tf.Output{
 			recommenderModel.Graph.Operation("StatefulPartitionedCall").Output(0),

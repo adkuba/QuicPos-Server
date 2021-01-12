@@ -288,7 +288,7 @@ func GetOne(userID string, ip string, ad bool) (data.Post, error) {
 	reviewed := bson.D{{"$match", bson.M{"initialreview": true}}}
 	notBlocked := bson.D{{"$match", bson.M{"blocked": false}}}
 	notWatched := bson.D{{"$match", bson.M{"views": bson.M{"$not": bson.M{"$elemMatch": bson.M{"userid": userID}}}}}}
-	sample := bson.D{{"$sample", bson.D{{"size", 10}}}}
+	sample := bson.D{{"$sample", bson.D{{"size", 100}}}}
 	lessViews := bson.D{{"$match", bson.M{"views.9": bson.M{"$exists": false}}}}
 	ads := bson.D{{"$match", bson.M{"money": bson.M{"$gt": 0}}}}
 
@@ -356,7 +356,7 @@ func GetOne(userID string, ip string, ad bool) (data.Post, error) {
 		IP:   ip,
 		Date: time.Now(),
 	}
-	bestValue := -1
+	bestValue := float32(0)
 	best := -1
 	start := time.Now()
 	for idx, post := range showsLoaded {
@@ -365,20 +365,15 @@ func GetOne(userID string, ip string, ad bool) (data.Post, error) {
 			return data.Post{}, err
 		}
 		results := inter.([][]float32)
-		categoryBest := float32(0)
-		categoryIndex := -1
-		for cat, result := range results[0] {
-			if categoryBest < result {
-				categoryBest = result
-				categoryIndex = cat
-			}
-		}
-		if categoryIndex > bestValue {
-			bestValue = categoryIndex
+		if results[0][0] > bestValue {
+			bestValue = results[0][0]
 			best = idx
 		}
 	}
-	err = stats.NewProcessing(float64(time.Now().UnixNano()-start.UnixNano()) / 1000000000)
+	//log.Println(bestValue)
+	czas := float64(time.Now().UnixNano()-start.UnixNano()) / 1000000000
+	//log.Println(czas)
+	err = stats.NewProcessing(czas)
 	if err != nil {
 		return data.Post{}, err
 	}
