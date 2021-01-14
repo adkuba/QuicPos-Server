@@ -1,11 +1,12 @@
 package stripe
 
 import (
+	"QuicPos/internal/data"
 	"github.com/stripe/stripe-go"
 	"github.com/stripe/stripe-go/paymentintent"
 )
 
-var stripeKey = ""
+var stripeKey = data.StripePrivate
 
 //Init stripe
 func Init() {

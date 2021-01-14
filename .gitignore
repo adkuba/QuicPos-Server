@@ -24,3 +24,5 @@ bin/
 
 private.key
 certificate.crt
+
+passwords.go

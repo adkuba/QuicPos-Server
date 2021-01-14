@@ -1,6 +1,7 @@
 package mongodb
 
 import (
+	"QuicPos/internal/data"
 	"context"
 	"log"
 
@@ -31,7 +32,7 @@ var DevicesCol *mongo.Collection
 
 //InitDB starts connection with database
 func InitDB() {
-	client, err := mongo.NewClient(options.Client().ApplyURI(""))
+	client, err := mongo.NewClient(options.Client().ApplyURI(data.MongoSRV))
 	if err != nil {
 		log.Fatal(err)
 	}

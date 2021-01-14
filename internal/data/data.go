@@ -1,15 +1,11 @@
 package data
 
+//WARNING create additional passwords.go file in this package with all passwords!!!
+
 import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"time"
 )
-
-//Pass to access
-var Pass = ""
-
-//AdminPass to access
-var AdminPass = ""
 
 //Day for stats
 type Day struct {
