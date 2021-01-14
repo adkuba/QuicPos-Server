@@ -372,15 +372,21 @@ func GetOne(userID string, ip string, ad bool) (data.Post, error) {
 	bestValue := float32(0)
 	best := -1
 	start := time.Now()
-	for idx, post := range showsLoaded {
-		inter, err := tensorflow.Recommend(*post, requesting)
-		if err != nil {
-			return data.Post{}, err
-		}
-		results := inter.([][]float32)
-		if results[0][0] > bestValue {
-			bestValue = results[0][0]
-			best = idx
+	//ads random choosing
+	if ad {
+		best = rand.Intn(len(showsLoaded))
+
+	} else {
+		for idx, post := range showsLoaded {
+			inter, err := tensorflow.Recommend(*post, requesting)
+			if err != nil {
+				return data.Post{}, err
+			}
+			results := inter.([][]float32)
+			if results[0][0] > bestValue {
+				bestValue = results[0][0]
+				best = idx
+			}
 		}
 	}
 	//log.Println(bestValue)
