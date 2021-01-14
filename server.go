@@ -19,7 +19,7 @@ import (
 )
 
 //443
-const defaultPort = "8080"
+const defaultPort = "443"
 
 //server
 func main() {
@@ -57,6 +57,6 @@ func main() {
 	router.Handle("/query", srv)
 
 	log.Printf("connect to https://localhost:%s/ for GraphQL playground", port)
-	//log.Fatal(http.ListenAndServeTLS(":"+port, "certificate.crt", "private.key", router))
-	log.Fatal(http.ListenAndServe(":"+port, router))
+	log.Fatal(http.ListenAndServeTLS(":"+port, "certificate.crt", "private.key", router))
+	//log.Fatal(http.ListenAndServe(":"+port, router))
 }

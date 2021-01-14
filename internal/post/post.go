@@ -287,6 +287,7 @@ func GetOneRandom() (data.Post, error) {
 func GetOne(userID string, ip string, ad bool) (data.Post, error) {
 	reviewed := bson.D{{"$match", bson.M{"initialreview": true}}}
 	notBlocked := bson.D{{"$match", bson.M{"blocked": false}}}
+	noImage := bson.D{{"$match", bson.M{"image": ""}}}
 	notWatched := bson.D{{"$match", bson.M{"views": bson.M{"$not": bson.M{"$elemMatch": bson.M{"user": userID}}}}}}
 	sample := bson.D{{"$sample", bson.D{{"size", 100}}}}
 	lessViews := bson.D{{"$match", bson.M{"views.9": bson.M{"$exists": false}}}}
@@ -305,12 +306,18 @@ func GetOne(userID string, ip string, ad bool) (data.Post, error) {
 	//user blocking
 	notUserBlocked := bson.D{{"$match", bson.M{"user": bson.M{"$nin": user.Blocking}}}}
 
-	//normal
-	pipeline := mongo.Pipeline{reviewed, notUserBlocked, notBlocked, notWatched, sample}
+	//without image
+	pipeline := mongo.Pipeline{reviewed, notUserBlocked, notBlocked, notWatched, noImage, sample}
+
+	//with image
+	number := rand.Intn(5)
+	if number == 2 {
+		pipeline = mongo.Pipeline{reviewed, notUserBlocked, notBlocked, notWatched, sample}
+	}
 
 	//sometimes get only posts with less than 10 views from real user
 	//<0, 19> 1 to 20 chance of hapenning
-	number := rand.Intn(10)
+	number = rand.Intn(10)
 	if number == 5 {
 		pipeline = mongo.Pipeline{reviewed, notUserBlocked, notBot, notBlocked, notWatched, lessViews, sample}
 	}
