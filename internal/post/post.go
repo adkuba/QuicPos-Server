@@ -287,7 +287,7 @@ func GetOneRandom() (data.Post, error) {
 func GetOne(userID string, ip string, ad bool) (data.Post, error) {
 	reviewed := bson.D{{"$match", bson.M{"initialreview": true}}}
 	notBlocked := bson.D{{"$match", bson.M{"blocked": false}}}
-	notWatched := bson.D{{"$match", bson.M{"views": bson.M{"$not": bson.M{"$elemMatch": bson.M{"userid": userID}}}}}}
+	notWatched := bson.D{{"$match", bson.M{"views": bson.M{"$not": bson.M{"$elemMatch": bson.M{"user": userID}}}}}}
 	sample := bson.D{{"$sample", bson.D{{"size", 100}}}}
 	lessViews := bson.D{{"$match", bson.M{"views.9": bson.M{"$exists": false}}}}
 	ads := bson.D{{"$match", bson.M{"money": bson.M{"$gt": 0}}}}
@@ -303,7 +303,7 @@ func GetOne(userID string, ip string, ad bool) (data.Post, error) {
 	}
 
 	//user blocking
-	notUserBlocked := bson.D{{"$match", bson.M{"user.uuid": bson.M{"$nin": user.Blocking}}}}
+	notUserBlocked := bson.D{{"$match", bson.M{"user": bson.M{"$nin": user.Blocking}}}}
 
 	//normal
 	pipeline := mongo.Pipeline{reviewed, notUserBlocked, notBlocked, notWatched, sample}
