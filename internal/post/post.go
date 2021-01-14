@@ -291,6 +291,7 @@ func GetOne(userID string, ip string, ad bool) (data.Post, error) {
 	sample := bson.D{{"$sample", bson.D{{"size", 100}}}}
 	lessViews := bson.D{{"$match", bson.M{"views.9": bson.M{"$exists": false}}}}
 	ads := bson.D{{"$match", bson.M{"money": bson.M{"$gt": 0}}}}
+	notBot := bson.D{{"$match", bson.M{"user": bson.M{"$ne": "8c793a8b69c94592aab5503acf236e97"}}}}
 
 	user, err := user.GetUser(userID)
 	if err != nil {
@@ -307,16 +308,21 @@ func GetOne(userID string, ip string, ad bool) (data.Post, error) {
 	//normal
 	pipeline := mongo.Pipeline{reviewed, notUserBlocked, notBlocked, notWatched, sample}
 
-	//sometimes get only posts with less than 10 views
-	//<0, 49> 1 to 50 chance of hapenning
-	number := rand.Intn(50)
-	if number == 20 {
-		pipeline = mongo.Pipeline{reviewed, notUserBlocked, notBlocked, notWatched, lessViews, sample}
+	//sometimes get only posts with less than 10 views from real user
+	//<0, 19> 1 to 20 chance of hapenning
+	number := rand.Intn(10)
+	if number == 5 {
+		pipeline = mongo.Pipeline{reviewed, notUserBlocked, notBot, notBlocked, notWatched, lessViews, sample}
 	}
 
 	//ad choosing
 	if ad {
 		pipeline = mongo.Pipeline{reviewed, notUserBlocked, notBlocked, ads, sample}
+		//sometimes display less viewed ads
+		number := rand.Intn(10)
+		if number == 5 {
+			pipeline = mongo.Pipeline{reviewed, notUserBlocked, notBlocked, ads, lessViews, sample}
+		}
 	}
 
 	showLoadedCursor, err := mongodb.PostsCol.Aggregate(context.TODO(), pipeline)
@@ -330,7 +336,7 @@ func GetOne(userID string, ip string, ad bool) (data.Post, error) {
 		return data.Post{}, err
 	}
 
-	//no ads
+	//no posts = download normal
 	if len(showsLoaded) == 0 {
 		pipeline = mongo.Pipeline{reviewed, notUserBlocked, notBlocked, notWatched, sample}
 		showLoadedCursor, err := mongodb.PostsCol.Aggregate(context.TODO(), pipeline)
