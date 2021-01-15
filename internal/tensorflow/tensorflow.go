@@ -184,7 +184,8 @@ func InitialReview(post data.Post) (bool, error) {
 		return false, err
 	}
 
-	if result.([][]float32)[0][0] > float32(0.5) {
+	//less than 50% chance of spam
+	if result.([][]float32)[0][0] < float32(0.5) {
 		return true, nil
 	}
 	return false, nil
