@@ -1,13 +1,35 @@
 # Table of Contents
-- [What i've learned]()
+- [What I've learned]()
 - [Important notes](#important-notes)
 - [Tensorflow](#tensorflow)
+  - [Installation](#installation)
+  - [Additional steps](#additional-steps)
+  - [Net structure](#net-structure)
 - [Golang notes](#golang-notes)
+  - [Recreate project](#recreate-project)
+  - [Working with go](#working-with-go)
+  - [GraphQL](#GraphQL)
+- [Mongodb](#mongodb)
+  - [Localization stats](#localization-stats)
+  - [Daily users](#daily-users)
+  - [Links del](#links-del)
+- [Deploy](#deploy)
+  - [Build server](#build-server)
+  - [On server](#on-server)
+- [API](#api)
+
+
+# What I've learned
+* How to create backend application in **Go** with **GraphQL**
+* Working with **MongoDB** and **Google cloud**
+* Implementing **Stripe** for payments and **Tensorflow** for machine learning
+* Developing **recommender system**
+* Deploying server with **SSL**
 
 
 # Important notes
 * Server only consumes jpeg images
-* Nohup is better than disown for startig server in Linux [More detailed answer](https://unix.stackexchange.com/questions/3886/difference-between-nohup-disown-and)
+* Go to [Playground](https://www.api.quicpos.com)
 * Needed files:
   * <code>geoloc/GeoLite2-City.mmdb</code> file with ip-localization database
   * <code>certificate.crt</code> and <code>private.key</code> file with SSL certificate
@@ -33,7 +55,7 @@ go get github.com/tensorflow/tensorflow/tensorflow/go@v1.15.4
 
 Check fields names without ":0". 
 
-### Additional steps that may help:
+### Additional steps
 * Installing tensorflow C [tutorial](https://www.tensorflow.org/install/lang_c)
 * Interesting [tutorial](https://tonytruong.net/running-a-keras-tensorflow-model-in-golang/)
 * All values needs to be float32
@@ -44,14 +66,22 @@ To see detailed net structure go to [QuicPos-Microservice]() repository.
 
 
 # Golang notes
-Working with golang, important notes:
+
+### Recreate project
+* In main directory run <code>go mod init QuicPos</code>
+* Im using graphQL package
+* Create project structure with: <code>go run github.com/99designs/gqlgen init</code>
+* Delete CreateTodos and Todos from <code>schema.resolvers.go</code>
+
+### Working with go
+Important notes:
 - Simple installation - only remember about the PATH variable. To change it I needed to edit <code>/etc/environment</code>
 
 - Example go package download <code>go get go.mongodb.org/mongo-driver/mongo</code>
 
 - Important! Go to file -> preferences -> settings -> go (extension) -> change format tool to "gofmt"
 
-### GraphQL Workflow:
+### GraphQL
 GraphQL schema is important, it defines how results will be sent, data structure.
 - In <code>schema.graphqls</code> define your models and operations - mutations and queries.
 - Generate functions with <code>go run github.com/99designs/gqlgen generate</code>
@@ -59,20 +89,11 @@ GraphQL schema is important, it defines how results will be sent, data structure
 
 
 
-## Google cloud storage
-Upload your account key! Name: QuicPos-key.json
+# Mongodb
+- <code>internal/mongodb</code> - file with all mongo database scripts.
+- If mongo can't find DNS edit <code>/etc/resolv.conf</code> and change nameserver to 8.8.8.8 <br>
 
-## Steps to recreate project
-In this directory run <code>go mod init QuicPos</code><br>
-Im using graphQL package <br>
-Then <code>go run github.com/99designs/gqlgen init</code> creates project structure.<br>
-Delete CreateTodos and Todos from schema.resolvers.go.
-
-## Mongodb
-In internal/mongodb is file with all mongo database scripts. <br>
-If mongo can't find DNS edit <code>/etc/resolv.conf</code> and change nameserver to 8.8.8.8 <br>
-Important handling of ObjectID - see post.go. I don't know if it is good but works well. <br>
-Localization stats:
+### Localization stats
 ```
 [{
     $match: {
@@ -98,50 +119,68 @@ Localization stats:
     }
 }]
 ```
-Daily users:
+
+
+### Daily users
 ```
-[{$match: {
-  views: {
-    $ne: null
-  }
-}}, {$project: {
-  'views.user': 1,
-  'views.date': 1,
-  _id: 0
-}}, {$unwind: {
-  path: '$views'
-}}, {$project: {
-  "views.user": "$views.user",
-  "views.date": {
-    $dateToString: {
-      date: "$views.date"
+[{
+    $match: {
+      views: {
+        $ne: null
+      }
     }
-  }
-}}, {$project: {
-  "views.user": "$views.user",
-  "views.date": {
-    $substr: ["$views.date", 0, 10]
-  }
-}}, {$group: {
-  _id: {
-    date: '$views.date',
-    user: '$views.user'
-  },
-  count: {
-    $sum: 1
-  }
-}}, {$group: {
-  _id: "$_id.date",
-  count: {
-    $sum: 1
-  }
-}}, {$sort: {
-  _id: 1
-}}]
+}, {
+    $project: {
+      'views.user': 1,
+      'views.date': 1,
+      _id: 0
+    }
+}, {
+    $unwind: {
+      path: '$views'
+    }
+}, {
+    $project: {
+      "views.user": "$views.user",
+      "views.date": {
+        $dateToString: {
+          date: "$views.date"
+        }
+      }
+    }
+}, {
+    $project: {
+      "views.user": "$views.user",
+      "views.date": {
+        $substr: ["$views.date", 0, 10]
+      }
+    }
+}, {
+    $group: {
+      _id: {
+        date: '$views.date',
+        user: '$views.user'
+      },
+      count: {
+        $sum: 1
+      }
+    }
+}, {
+    $group: {
+      _id: "$_id.date",
+      count: {
+        $sum: 1
+      }
+    }
+}, {
+    $sort: {
+      _id: 1
+    }
+}]
 ```
 
-
-Ciekawe query usuwające wszystkie linki w tekście posta.
+### Links del
+Query deleting all links in post's text:
 ```sh
 db.posts.find({text: {$regex: "https:[^ ]+"}}).forEach(function(e, i){ 
     const regex = /https:[^ ]+/gi; 
@@ -150,30 +189,38 @@ db.posts.find({text: {$regex: "https:[^ ]+"}}).forEach(function(e, i){
 })
 ```
 
-## Deploy
+
+
+# Deploy
+
+### Build server
+Build server executable:
+* Build with <code>go build -o bin/</code> and check with <code>bin/QuicPos</code>
+* Send to server with scp <code>scp bin/QuicPos root@142.93.232.180:~/QuicPos</code>
+* Remember to send needed files! May need scp with -r flag
+
+### On server
 You don't have to create docker image. Just build golang project, send to virtual machine and run. Then execute:
-```sh
-[1]+  Stopped                 myprogram
-$ disown -h %1
-$ bg 1
-[1]+ myprogram &
-$ logout
-```
+* Better option, Nohup is better than disown for startig server in Linux [More detailed answer](https://unix.stackexchange.com/questions/3886/difference-between-nohup-disown-and)
 
-## Docker* napisanie statystyk na serwerze (moze być bez implementacji na stronie )
-Make docker image:
-* check if go builds correctly <code>go build -o bin/</code> and then run <code>bin/QuicPos</code>
-* build image <code>docker build -t quicpos .</code>
-* check if works <code>docker run -p 8080:8080 quicpos</code>
-* export to file <code>docker save -o ./bin/quicpos.tar quicpos</code>
-* transfer exported tar to your virtual machine <code>scp ./bin/quicpos.tar root@128.199.45.42:~/quicpos.tar</code>
-* connect with virtual machine <code>ssh root@128.199.45.42</code>
-* load tar <code>docker load -i quicpos.tar</code>
-* run in background exposing ports <code>docker run -d --rm -p 80:8080 quicpos</code>
-* check if is running <code>docker ps -a</code>
-* stop <code>docker stop \<name\></code>
+  ```sh
+  sudo nohup ./QuicPos &
+  ```
+* Second option
 
-## API
+  ```sh
+  ./Quicpos &>> server.txt
+  [1]+  Stopped                 myprogram
+  $ disown -h %1
+  $ bg 1
+  [1]+ myprogram &
+  $ logout
+  ```
+
+
+
+
+# API
 Save post
 ```graphql
 mutation create {
