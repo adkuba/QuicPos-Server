@@ -98,6 +98,48 @@ Localization stats:
     }
 }]
 ```
+Daily users:
+```
+[{$match: {
+  views: {
+    $ne: null
+  }
+}}, {$project: {
+  'views.user': 1,
+  'views.date': 1,
+  _id: 0
+}}, {$unwind: {
+  path: '$views'
+}}, {$project: {
+  "views.user": "$views.user",
+  "views.date": {
+    $dateToString: {
+      date: "$views.date"
+    }
+  }
+}}, {$project: {
+  "views.user": "$views.user",
+  "views.date": {
+    $substr: ["$views.date", 0, 10]
+  }
+}}, {$group: {
+  _id: {
+    date: '$views.date',
+    user: '$views.user'
+  },
+  count: {
+    $sum: 1
+  }
+}}, {$group: {
+  _id: "$_id.date",
+  count: {
+    $sum: 1
+  }
+}}, {$sort: {
+  _id: 1
+}}]
+```
+
 
 Ciekawe query usuwające wszystkie linki w tekście posta.
 ```sh
