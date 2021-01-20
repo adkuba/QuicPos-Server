@@ -1,37 +1,63 @@
-# QuicPos
-Application backend in golang
+# Table of Contents
+- [What i've learned]()
+- [Important notes](#important-notes)
+- [Tensorflow](#tensorflow)
+- [Golang notes](#golang-notes)
 
-## WARNING
-* my server only consumes jpeg images
 
-## Tensorflow
-Initially I couldn't install tensorflow. The reason was that golang package links to official tensorflow repo, but doesn't support 2.0 version. So to install tensorflow I needed to execute <code>go get github.com/tensorflow/tensorflow/tensorflow/go@v1.15.4</code> Also I skipped naming layers when saving model to pb file in keras but I needed to check default names with <code>saved_model_cli show --dir out/ --all</code> field name without ":0". Additional steps that may help:
-* installing tensorflow C [tutorial](https://www.tensorflow.org/install/lang_c)
-* interesting [tutorial](https://tonytruong.net/running-a-keras-tensorflow-model-in-golang/)
-* all values needs to be float32
-* I chose multiplication in final results comparing (recommender), example: 
-  * ADDITION: 30s view 60% share chance = 0,03 + 0,6 = **0,63**
-  * ADDITION: 60s view 50% share chance = 0,06 + 0,5 = **0,56**
-  * MULTIPLICATION: 0,03 * 0,6 = **0,018**
-  * MULTIPLICATION: 0,06 * 0,5 = **0,030**
-* max view time for net is 1000s = 16(2/3)min
+# Important notes
+* Server only consumes jpeg images
+* Nohup is better than disown for startig server in Linux [More detailed answer](https://unix.stackexchange.com/questions/3886/difference-between-nohup-disown-and)
+* Needed files:
+  * <code>geoloc/GeoLite2-City.mmdb</code> file with ip-localization database
+  * <code>certificate.crt</code> and <code>private.key</code> file with SSL certificate
+  * <code>QuicPos-key.json</code> with Google cloud storage key
+  * <code>data/passwords.go</code> with 2 passwords, mongoSRV and Stripe private key
+  * <code>out/</code> directory with 3x saved tensorflow models and 2x json dictionaries to work with this models
 
-## Golang notes
-Simple installation - only remember about path variable. I needed to edit <code>/etc/environment</code>
 
-Example package download <code>go get go.mongodb.org/mongo-driver/mongo</code>
+# Tensorflow
+Tensorflow notes, how to use Tensorflow with golang.
 
-Important! Go to file -> preferences -> settings -> go (extension) -> change format tool to "gofmt"
+### Installation
+Initially I couldn't install Tensorflow. The reason was, that golang package links to official tensorflow repo, but doesn't support 2.0 version. So to install tensorflow I needed to execute:
 
-Workflow:
-- in <code>schema.graphqls</code> define your models and operations - mutations and queries
-- generate functions with <code>go run github.com/99designs/gqlgen generate</code>
-- go to <code>schema.resolvers.go</code> and implement functions.
+```sh
+go get github.com/tensorflow/tensorflow/tensorflow/go@v1.15.4
+```
 
-GeoLite2-City.mmdb file needed!
+ Also I skipped naming layers when saving model to pb file in keras. To check default names execute this command:
+ ```
+ saved_model_cli show --dir out/ --all
+ ```
 
-## GraphQL
+Check fields names without ":0". 
+
+### Additional steps that may help:
+* Installing tensorflow C [tutorial](https://www.tensorflow.org/install/lang_c)
+* Interesting [tutorial](https://tonytruong.net/running-a-keras-tensorflow-model-in-golang/)
+* All values needs to be float32
+
+### Net structure
+To see detailed net structure go to [QuicPos-Microservice]() repository.
+
+
+
+# Golang notes
+Working with golang, important notes:
+- Simple installation - only remember about the PATH variable. To change it I needed to edit <code>/etc/environment</code>
+
+- Example go package download <code>go get go.mongodb.org/mongo-driver/mongo</code>
+
+- Important! Go to file -> preferences -> settings -> go (extension) -> change format tool to "gofmt"
+
+### GraphQL Workflow:
 GraphQL schema is important, it defines how results will be sent, data structure.
+- In <code>schema.graphqls</code> define your models and operations - mutations and queries.
+- Generate functions with <code>go run github.com/99designs/gqlgen generate</code>
+- Go to <code>schema.resolvers.go</code> and implement functions.
+
+
 
 ## Google cloud storage
 Upload your account key! Name: QuicPos-key.json
