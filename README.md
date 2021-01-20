@@ -1,5 +1,5 @@
 # Table of Contents
-- [What I've learned]()
+- [What I've learned](#what-ive-learned)
 - [Important notes](#important-notes)
 - [Tensorflow](#tensorflow)
   - [Installation](#installation)
@@ -24,7 +24,7 @@
 * Working with **MongoDB** and **Google cloud**
 * Implementing **Stripe** for payments and **Tensorflow** for machine learning
 * Developing **recommender system**
-* Deploying server with **SSL**
+* Deploying server secure connection **SSL**
 
 
 # Important notes
@@ -61,7 +61,7 @@ Check fields names without ":0".
 * All values needs to be float32
 
 ### Net structure
-To see detailed net structure go to [QuicPos-Microservice]() repository.
+To see detailed net structure go to [QuicPos-Microservice](https://github.com/adkuba/QuicPos-Microservice) repository.
 
 
 
@@ -76,9 +76,7 @@ To see detailed net structure go to [QuicPos-Microservice]() repository.
 ### Working with go
 Important notes:
 - Simple installation - only remember about the PATH variable. To change it I needed to edit <code>/etc/environment</code>
-
 - Example go package download <code>go get go.mongodb.org/mongo-driver/mongo</code>
-
 - Important! Go to file -> preferences -> settings -> go (extension) -> change format tool to "gofmt"
 
 ### GraphQL
