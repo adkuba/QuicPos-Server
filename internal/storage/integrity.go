@@ -57,7 +57,7 @@ func RemoveParentless() (int, error) {
 	}
 
 	for idx, imageToDelete := range toDelete {
-		err = deleteFile(imageToDelete)
+		err = DeleteFile(imageToDelete)
 		if err != nil {
 			log.Println(idx, err)
 		}
@@ -75,7 +75,8 @@ func stringInSlice(a string, list []string) bool {
 	return false
 }
 
-func deleteFile(name string) error {
+//DeleteFile from storage
+func DeleteFile(name string) error {
 
 	log.Println("Deleteing: " + name)
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)

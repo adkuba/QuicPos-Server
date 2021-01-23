@@ -7,9 +7,11 @@ import (
 	"QuicPos/internal/geoloc"
 	"QuicPos/internal/mongodb"
 	"QuicPos/internal/stats"
+	"QuicPos/internal/storage"
 	"QuicPos/internal/tensorflow"
 	"QuicPos/internal/user"
 	"context"
+	"encoding/hex"
 	"errors"
 	"log"
 	"math/rand"
@@ -105,6 +107,13 @@ func Remove(postID string, userUUID string) error {
 	}
 
 	if post.User == userUUID {
+		if post.Image != "" {
+			err = storage.DeleteFile(post.Image)
+			if err != nil {
+				return err
+			}
+		}
+
 		objectID, _ := primitive.ObjectIDFromHex(postID)
 		_, err := mongodb.PostsCol.DeleteOne(
 			context.TODO(),
@@ -124,7 +133,11 @@ func Share(newReport model.NewReportShare) (bool, error) {
 	shares := post.Shares
 
 	for _, sh := range shares {
-		if sh == &newReport.UserID {
+		bs, err := hex.DecodeString(*sh)
+		if err != nil {
+			continue
+		}
+		if hex.EncodeToString(bs) == newReport.UserID {
 			return true, nil
 		}
 	}
@@ -153,7 +166,11 @@ func Report(newReport model.NewReportShare) (bool, error) {
 	reports := post.Reports
 
 	for _, rep := range reports {
-		if rep == &newReport.UserID {
+		bs, err := hex.DecodeString(*rep)
+		if err != nil {
+			continue
+		}
+		if hex.EncodeToString(bs) == newReport.UserID {
 			return true, nil
 		}
 	}

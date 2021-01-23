@@ -398,7 +398,7 @@ mutation view {
   view(
     input: {
       postID: "5f79cc2f9ec125d75f2e36e4"
-      userId: -1
+      userId: ""
       time: 1.0
       deviceDetails: 1
     }
@@ -414,7 +414,7 @@ mutation view {
 New report
 ```graphql
 mutation review {
-  report(input: { userID: 1, postID: "5f79cc2f9ec125d75f2e36e4" })
+  report(input: { userID: "", postID: "5f79cc2f9ec125d75f2e36e4" })
 }
 
 ```
@@ -425,7 +425,7 @@ New share
 ```graphql
 mutation share {
   share(
-    input: { userID: 1, postID: "5f79cc2f9ec125d75f2e36e4" }
+    input: { userID: "", postID: "5f79cc2f9ec125d75f2e36e4" }
     password: "kub"
   )
 }
