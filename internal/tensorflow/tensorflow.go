@@ -9,6 +9,7 @@ import (
 	"log"
 	"os"
 	"strings"
+	"sync"
 
 	tf "github.com/tensorflow/tensorflow/tensorflow/go"
 
@@ -23,6 +24,9 @@ type netData struct {
 	Shares [1][1]float32
 }
 
+//syncing
+var mutex = &sync.Mutex{}
+
 var recommenderModel *tf.SavedModel
 var detectorModel *tf.SavedModel
 var imageModel *tf.SavedModel
@@ -32,42 +36,57 @@ var detectorDictionary []string
 //InitModels for recommender and detector and dictionaries
 func InitModels() error {
 
-	jsonFile, err := os.Open("./out/recommenderDictionary.json")
-	if err != nil {
-		return err
-	}
-	defer jsonFile.Close()
-	byteValue, _ := ioutil.ReadAll(jsonFile)
-	json.Unmarshal(byteValue, &recommenderDictionary)
-	//log.Println(recommenderDictionary)
+	//lock
+	mutex.Lock()
 
-	jsonFile, err = os.Open("./out/detectorDictionary.json")
+	//recommenderDictionary
+	jsonFileRec, err := os.Open("./out/recommenderDictionary.json")
 	if err != nil {
 		return err
 	}
-	defer jsonFile.Close()
-	byteValue, _ = ioutil.ReadAll(jsonFile)
+	jsonFileRec.Close()
+	byteValue, _ := ioutil.ReadAll(jsonFileRec)
+	json.Unmarshal(byteValue, &recommenderDictionary)
+
+	//detectorDictionary
+	jsonFileDet, err := os.Open("./out/detectorDictionary.json")
+	if err != nil {
+		return err
+	}
+	jsonFileDet.Close()
+	byteValue, _ = ioutil.ReadAll(jsonFileDet)
 	json.Unmarshal(byteValue, &detectorDictionary)
 
-	model, err := tf.LoadSavedModel("./out/recommender", []string{"serve"}, nil)
+	//recommender
+	if recommenderModel != nil {
+		recommenderModel.Session.Close()
+	}
+	recommenderModel, err = tf.LoadSavedModel("./out/recommender", []string{"serve"}, nil)
 	if err != nil {
 		return err
 	}
-	recommenderModel = model
 
-	model, err = tf.LoadSavedModel("./out/detector", []string{"serve"}, nil)
+	//detector
+	if detectorModel != nil {
+		detectorModel.Session.Close()
+	}
+	detectorModel, err = tf.LoadSavedModel("./out/detector", []string{"serve"}, nil)
 	if err != nil {
 		return err
 	}
-	detectorModel = model
 
-	model, err = tf.LoadSavedModel("./out/image", []string{"serve"}, nil)
+	//image
+	if imageModel != nil {
+		imageModel.Session.Close()
+	}
+	imageModel, err = tf.LoadSavedModel("./out/image", []string{"serve"}, nil)
 	if err != nil {
 		return err
 	}
-	imageModel = model
+
+	//unlock
+	mutex.Unlock()
 	return nil
-	//defer model.Session.Close()
 }
 
 func getPixels(data io.Reader) ([1][224][224][3]float32, error) {
@@ -199,16 +218,22 @@ func Spam(post data.Post) (interface{}, error) {
 	text, _ := tf.NewTensor(netPost.Text)
 	image, _ := tf.NewTensor(netPost.Image)
 
+	//lock
+	mutex.Lock()
+
 	result, err := detectorModel.Session.Run(
 		map[tf.Output]*tf.Tensor{
-			recommenderModel.Graph.Operation("serving_default_input_1").Output(0): text,
-			recommenderModel.Graph.Operation("serving_default_input_2").Output(0): image,
+			detectorModel.Graph.Operation("serving_default_input_1").Output(0): text,
+			detectorModel.Graph.Operation("serving_default_input_2").Output(0): image,
 		},
 		[]tf.Output{
-			recommenderModel.Graph.Operation("StatefulPartitionedCall").Output(0),
+			detectorModel.Graph.Operation("StatefulPartitionedCall").Output(0),
 		},
 		nil,
 	)
+
+	//unlock
+	mutex.Unlock()
 
 	if err != nil {
 		return nil, err
@@ -237,6 +262,9 @@ func Recommend(post data.Post, requesting data.Requesting) (interface{}, error) 
 	shares, _ := tf.NewTensor(netPost.Shares)
 	requestingUser, _ := tf.NewTensor(requestingUserArray)
 
+	//lock
+	mutex.Lock()
+
 	result, err := recommenderModel.Session.Run(
 		map[tf.Output]*tf.Tensor{
 			recommenderModel.Graph.Operation("serving_default_input_1").Output(0): text,
@@ -250,6 +278,9 @@ func Recommend(post data.Post, requesting data.Requesting) (interface{}, error) 
 		},
 		nil,
 	)
+
+	//unlock
+	mutex.Unlock()
 
 	if err != nil {
 		return nil, err

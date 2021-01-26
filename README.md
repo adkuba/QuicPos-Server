@@ -39,7 +39,7 @@
 
 
 # Tensorflow
-Tensorflow notes, how to use Tensorflow with golang.
+Tensorflow notes, how to use Tensorflow with golang. **WARNING** during loading new models every 6 hours tensorflow leaks memory!!! Server after some time just stops! No solution so far!!!
 
 ### Installation
 Initially I couldn't install Tensorflow. The reason was, that golang package links to official tensorflow repo, but doesn't support 2.0 version. So to install tensorflow I needed to execute:
@@ -78,6 +78,7 @@ Important notes:
 - Simple installation - only remember about the PATH variable. To change it I needed to edit <code>/etc/environment</code>
 - Example go package download <code>go get go.mongodb.org/mongo-driver/mongo</code>
 - Important! Go to file -> preferences -> settings -> go (extension) -> change format tool to "gofmt"
+- Imteresting usage of Lock with mutex in tensorflow package
 
 ### GraphQL
 GraphQL schema is important, it defines how results will be sent, data structure.

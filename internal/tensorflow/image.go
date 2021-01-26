@@ -30,15 +30,22 @@ func GenerateImageFeatures(imageString string) ([]float32, error) {
 	pixels, _ := getPixels(buf)
 
 	imageTensor, _ := tf.NewTensor(pixels)
+
+	//lock
+	mutex.Lock()
+
 	result, err := imageModel.Session.Run(
 		map[tf.Output]*tf.Tensor{
-			recommenderModel.Graph.Operation("serving_default_input_1").Output(0): imageTensor,
+			imageModel.Graph.Operation("serving_default_input_1").Output(0): imageTensor,
 		},
 		[]tf.Output{
-			recommenderModel.Graph.Operation("StatefulPartitionedCall").Output(0),
+			imageModel.Graph.Operation("StatefulPartitionedCall").Output(0),
 		},
 		nil,
 	)
+
+	//unlock
+	mutex.Unlock()
 
 	if err != nil {
 		return []float32{}, err
